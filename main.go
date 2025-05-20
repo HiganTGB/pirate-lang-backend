@@ -1,31 +1,14 @@
 package main
 
 import (
-	"errors"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
-	"log/slog"
-	"net/http"
+	"prirate-lang-go/core/logger"
+	"prirate-lang-go/core/server"
 )
 
 func main() {
 	// Echo instance
-	e := echo.New()
 
-	// Middleware
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-
-	// Routes
-	e.GET("/", hello)
-
-	// Start server
-	if err := e.Start(":8080"); err != nil && !errors.Is(err, http.ErrServerClosed) {
-		slog.Error("failed to start server", "error", err)
+	if err := server.Run(); err != nil {
+		logger.Error("run server error", err)
 	}
-}
-
-// Handler
-func hello(c echo.Context) error {
-	return c.String(http.StatusOK, "Hello, World!")
 }
