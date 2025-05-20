@@ -1,7 +1,7 @@
 package router
 
 import (
-	"github.com/labstack/echo/v4"
+	"github.com/gin-gonic/gin"
 	"prirate-lang-go/core/middleware"
 	"prirate-lang-go/modules/account/controller"
 )
@@ -15,9 +15,9 @@ func NewAccountRouter(controller *controller.AccountController) *AccountRouter {
 		controller: controller,
 	}
 }
-func (r *AccountRouter) Setup(e *echo.Echo, middleware *middleware.Middleware) {
-	// API v1 group
-	v1 := e.Group("/v1")
+
+func (r *AccountRouter) Setup(engine *gin.Engine, appMiddleware *middleware.Middleware) {
+	v1 := engine.Group("/v1")
 	test := v1.Group("")
 	test.GET("/hello", r.controller.HelloWorld)
 }

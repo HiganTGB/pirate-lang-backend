@@ -1,10 +1,11 @@
 package controller
 
-import "github.com/labstack/echo/v4"
+import (
+	"github.com/gin-gonic/gin"
+)
 
-func (controller *AccountController) HelloWorld(c echo.Context) error {
-	data := map[string]string{
+func (controller *AccountController) HelloWorld(c *gin.Context) {
+	controller.SuccessResponse(c, gin.H{
 		"message": "Hello, World!",
-	}
-	return controller.SuccessResponse(c, data, "Hello World from API")
+	}, "Chào mừng!")
 }

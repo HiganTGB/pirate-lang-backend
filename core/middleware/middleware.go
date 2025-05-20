@@ -1,9 +1,10 @@
 package middleware
 
 import (
-	"github.com/labstack/echo/v4"
+	"github.com/gin-gonic/gin"
 	"prirate-lang-go/core/controller"
 	"prirate-lang-go/core/logger"
+	"time"
 )
 
 type Middleware struct {
@@ -15,25 +16,26 @@ func NewMiddleware() *Middleware {
 		BaseController: controller.NewBaseController(),
 	}
 }
-func LoggerMiddleware() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			req := c.Request()
-			res := c.Response()
+func LoggerMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
 
-			if err := next(c); err != nil {
-				c.Error(err)
-			}
+		startTime := time.Now()
+		reqMethod := c.Request.Method
+		reqURI := c.Request.RequestURI
+		remoteIP := c.ClientIP()
 
-			// Log request details
-			logger.Info("Request",
-				"method", req.Method,
-				"uri", req.RequestURI,
-				"status", res.Status,
-				"remote_ip", c.RealIP(),
-			)
+		c.Next()
 
-			return nil
-		}
+		duration := time.Since(startTime)
+		statusCode := c.Writer.Status()
+
+		logger.Info("Request Handled",
+			"method", reqMethod,
+			"uri", reqURI,
+			"status", statusCode,
+			"remote_ip", remoteIP,
+			"duration", duration,
+		)
+
 	}
 }
