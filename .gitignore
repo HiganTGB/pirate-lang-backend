@@ -1,2 +1,4 @@
 srcipt/using sqlc.sh
 /logs/
+.env
+/.env

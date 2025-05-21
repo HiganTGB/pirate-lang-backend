@@ -340,7 +340,7 @@ func (q *Queries) RoleExists(ctx context.Context, id uuid.UUID) (bool, error) {
 	return exists, err
 }
 
-const updatePassword = `-- name: UpdatePassword :exec
+const updatePassword = `-- name: UpdatePassword :execresult
 UPDATE users
 SET password = $1, updated_at = NOW()
 WHERE id = $2
@@ -352,7 +352,6 @@ type UpdatePasswordParams struct {
 }
 
 // UpdatePassword updates the password for a given user ID.
-func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error {
-	_, err := q.db.ExecContext(ctx, updatePassword, arg.Password, arg.ID)
-	return err
+func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, updatePassword, arg.Password, arg.ID)
 }

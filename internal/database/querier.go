@@ -6,6 +6,7 @@ package database
 
 import (
 	"context"
+	"database/sql"
 
 	"github.com/google/uuid"
 )
@@ -42,7 +43,7 @@ type Querier interface {
 	// RoleExists checks if a role with the given ID exists.
 	RoleExists(ctx context.Context, id uuid.UUID) (bool, error)
 	// UpdatePassword updates the password for a given user ID.
-	UpdatePassword(ctx context.Context, arg UpdatePasswordParams) error
+	UpdatePassword(ctx context.Context, arg UpdatePasswordParams) (sql.Result, error)
 }
 
 var _ Querier = (*Queries)(nil)

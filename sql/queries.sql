@@ -13,7 +13,7 @@ INSERT INTO users (user_name, email, password)
 VALUES ($1, $2, $3)
 RETURNING id, user_name, email;
 
--- name: UpdatePassword :exec
+-- name: UpdatePassword :execresult
 -- UpdatePassword updates the password for a given user ID.
 UPDATE users
 SET password = $1, updated_at = NOW()

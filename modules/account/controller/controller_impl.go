@@ -1,16 +1,19 @@
 package controller
 
 import (
-	"prirate-lang-go/core/controller"
+	"pirate-lang-go/core/controller"
+	"pirate-lang-go/modules/account/service"
 )
 
 type AccountController struct {
 	controller.BaseController
+	accountService service.IAccountService
 }
 
-func NewAccountController() *AccountController {
+func NewAccountController(service service.IAccountService) *AccountController {
 
 	return &AccountController{
 		BaseController: controller.NewBaseController(),
+		accountService: service,
 	}
 }
