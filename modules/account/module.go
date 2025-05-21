@@ -13,7 +13,7 @@ import (
 func Init(e *echo.Echo, db database.Database) {
 	repository := repository.NewAccountRepository(db.DB())
 	accountService := service.NewAccountService(repository)
-	middleware := middleware.NewMiddleware()
+	middleware := middleware.NewMiddleware(accountService)
 	// Update: pass only the controller
 	router.NewAccountRouter(
 		controller.NewAccountController(accountService),

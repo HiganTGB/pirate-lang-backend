@@ -5,15 +5,20 @@ import (
 	"net/http"
 	"pirate-lang-go/core/controller"
 	"pirate-lang-go/core/logger"
+	"pirate-lang-go/core/utils"
+	"pirate-lang-go/modules/account/service"
+	"strings"
 )
 
 type Middleware struct {
 	controller.BaseController
+	accountService service.IAccountService
 }
 
-func NewMiddleware() *Middleware {
+func NewMiddleware(accountService service.IAccountService) *Middleware {
 	return &Middleware{
 		BaseController: controller.NewBaseController(),
+		accountService: accountService,
 	}
 }
 func LoggerMiddleware() echo.MiddlewareFunc {
@@ -50,6 +55,34 @@ func CORSMiddleware() echo.MiddlewareFunc {
 				return c.NoContent(http.StatusOK)
 			}
 
+			return next(c)
+		}
+	}
+
+}
+func (m *Middleware) AuthMiddleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// Get token from header
+			authHeader := c.Request().Header.Get("Authorization")
+			if authHeader == "" {
+				return m.Unauthorized("missing authorization header")
+			}
+
+			// Check Bearer token format
+			parts := strings.Split(authHeader, " ")
+			if len(parts) != 2 || parts[0] != "Bearer" {
+				return m.Unauthorized("missing authorization header")
+			}
+
+			// Validate token
+			claims, err := utils.ValidateToken(parts[1])
+			if err != nil {
+				return m.Unauthorized("invalid token")
+			}
+
+			// Set user claims in context
+			c.Set("user", claims)
 			return next(c)
 		}
 	}
