@@ -7,11 +7,11 @@ import (
 
 	"os"
 	"os/signal"
-	"prirate-lang-go/core/config"
-	"prirate-lang-go/core/database"
-	"prirate-lang-go/core/logger"
-	"prirate-lang-go/core/middleware"
-	"prirate-lang-go/modules/account"
+	"pirate-lang-go/core/config"
+	"pirate-lang-go/core/database"
+	"pirate-lang-go/core/logger"
+	"pirate-lang-go/core/middleware"
+	"pirate-lang-go/modules/account"
 	"syscall"
 	"time"
 

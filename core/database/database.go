@@ -3,7 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"prirate-lang-go/core/logger"
+	"pirate-lang-go/core/logger"
 	"sync"
 	"time"
 

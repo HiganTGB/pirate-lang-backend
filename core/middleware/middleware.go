@@ -2,8 +2,9 @@ package middleware
 
 import (
 	"github.com/labstack/echo/v4"
-	"prirate-lang-go/core/controller"
-	"prirate-lang-go/core/logger"
+	"net/http"
+	"pirate-lang-go/core/controller"
+	"pirate-lang-go/core/logger"
 )
 
 type Middleware struct {
@@ -34,6 +35,22 @@ func LoggerMiddleware() echo.MiddlewareFunc {
 			)
 
 			return nil
+		}
+	}
+}
+func CORSMiddleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			c.Response().Header().Set("Access-Control-Allow-Origin", "*")
+			c.Response().Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+			c.Response().Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization")
+			c.Response().Header().Set("Access-Control-Allow-Credentials", "true")
+
+			if c.Request().Method == "OPTIONS" {
+				return c.NoContent(http.StatusOK)
+			}
+
+			return next(c)
 		}
 	}
 }

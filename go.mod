@@ -1,4 +1,4 @@
-module prirate-lang-go
+module pirate-lang-go
 
 go 1.24.3
 

@@ -2,7 +2,7 @@ package utils
 
 import (
 	"fmt"
-	"prirate-lang-go/core/config"
+	"pirate-lang-go/core/config"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"

@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"errors"
-	"prirate-lang-go/core/config"
+	"pirate-lang-go/core/config"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
