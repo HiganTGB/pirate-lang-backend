@@ -42,3 +42,33 @@ type ChangePasswordRequest struct {
 	NewPassword     string `json:"new_password"`
 	ConfirmPassword string `json:"confirm_password"`
 }
+
+type CreateRoleRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+type RoleResponse struct {
+	Id          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+}
+
+type CreatePermissionRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+}
+
+type PermissionResponse struct {
+	Id          uuid.UUID `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+}
+
+type AssignPermissionToRoleRequest struct {
+	RoleId       uuid.UUID `json:"role_id"`
+	PermissionId uuid.UUID `json:"permission_id"`
+}
+type AssignRoleToUserRequest struct {
+	UserId uuid.UUID `json:"user_id"`
+	RoleId uuid.UUID `json:"role_id"`
+}

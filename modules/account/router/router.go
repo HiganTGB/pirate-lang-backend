@@ -39,4 +39,13 @@ func (r *AccountRouter) Setup(e *echo.Echo, middleware *middleware.Middleware) {
 
 	test := v1.Group("/test")
 	test.GET("/hello", r.controller.HelloWorld)
+	
+	// RBAC management routes
+	rbac := admin.Group("/rbac")
+	rbac.GET("/roles", r.controller.GetRoles)
+	rbac.POST("/roles", r.controller.CreateRole)
+	rbac.GET("/permissions", r.controller.GetPermissions)
+	rbac.POST("/permissions", r.controller.CreatePermission)
+	rbac.POST("/roles/:roleId/permissions/:permissionId", r.controller.AssignPermissionToRole)
+	rbac.POST("/roles/:roleId/users/:userId", r.controller.AssignRoleToUser)
 }
