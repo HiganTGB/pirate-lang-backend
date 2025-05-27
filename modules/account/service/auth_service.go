@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/labstack/gommon/log"
 	"pirate-lang-go/core/constants"
@@ -69,7 +70,27 @@ func (s *AccountService) CreateAccount(ctx context.Context, requestData *dto.Cre
 }
 func (s *AccountService) Login(ctx context.Context, requestData *dto.LoginRequest) (*dto.LoginResponse, *errors.AppError) {
 
-	// TODO: Check rate limiting first and Check if user is blocked
+	// Check rate limiting first
+	rateKey := fmt.Sprintf("login_rate:%s", requestData.Email)
+	rateCount, _ := s.cache.Get(ctx, rateKey).Int()
+	if rateCount >= 10 { // Max 10 attempts per minute
+		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount:username or email already exists", nil)
+	}
+
+	// Increment and set rate limit
+	s.cache.Incr(ctx, rateKey)
+	s.cache.Expire(ctx, rateKey, time.Minute) // Reset after 1 minute
+
+	// Check if user is blocked
+	blockKey := fmt.Sprintf("login_blocked:%s", requestData.Email)
+	blocked, err := s.cache.IsLoginBlocked(ctx, blockKey)
+	if err != nil {
+		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount:username or email already exists", err)
+	}
+	if blocked {
+		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount:username or email already exists", err)
+	}
+
 	existingUser, err := s.repo.GetUserByEmailOrUserNameOrId(ctx, requestData.Email, "", uuid.Nil)
 
 	if err != nil {
