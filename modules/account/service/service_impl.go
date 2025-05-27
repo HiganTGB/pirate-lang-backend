@@ -3,19 +3,22 @@ package service
 import (
 	"context"
 	"github.com/google/uuid"
+	"pirate-lang-go/core/cache"
 	"pirate-lang-go/core/errors"
 	"pirate-lang-go/modules/account/dto"
 	"pirate-lang-go/modules/account/repository"
 )
 
 type AccountService struct {
-	repo repository.IAccountRepository
+	repo  repository.IAccountRepository
+	cache cache.ICache
 }
 
-func NewAccountService(repo repository.IAccountRepository) IAccountService {
+func NewAccountService(repo repository.IAccountRepository, cache cache.ICache) IAccountService {
 
 	return &AccountService{
-		repo: repo,
+		repo:  repo,
+		cache: cache,
 	}
 }
 

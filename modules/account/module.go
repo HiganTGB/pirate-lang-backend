@@ -2,6 +2,7 @@ package account
 
 import (
 	"github.com/labstack/echo/v4"
+	"pirate-lang-go/core/cache"
 	"pirate-lang-go/core/database"
 	"pirate-lang-go/core/middleware"
 	"pirate-lang-go/modules/account/controller"
@@ -10,9 +11,9 @@ import (
 	"pirate-lang-go/modules/account/service"
 )
 
-func Init(e *echo.Echo, db database.Database) {
+func Init(e *echo.Echo, db database.Database, cache *cache.Cache) {
 	repository := repository.NewAccountRepository(db.DB())
-	accountService := service.NewAccountService(repository)
+	accountService := service.NewAccountService(repository, cache)
 	middleware := middleware.NewMiddleware(accountService)
 	// Update: pass only the controller
 	router.NewAccountRouter(
