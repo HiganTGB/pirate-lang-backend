@@ -3,3 +3,4 @@ srcipt/using sqlc.sh
 .env
 /.env
 /volumes/
+/.idea/

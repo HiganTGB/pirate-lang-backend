@@ -37,6 +37,12 @@ type SMTPConfig struct {
 	FromName string `mapstructure:"from_name"`
 }
 
+type MinIOConfig struct {
+	Endpoint  string `mapstructure:"endpoint"`
+	AccessKey string `mapstructure:"access_key"`
+	SecretKey string `mapstructure:"secret_key"`
+	UseSSL    bool   `mapstructure:"use_ssl"`
+}
 type RedisConfig struct {
 	Address  string `mapstructure:"address"`
 	Password string `mapstructure:"password"`
@@ -50,6 +56,7 @@ type Config struct {
 	JWT         JWTConfig
 	SMTP        SMTPConfig
 	Redis       RedisConfig `mapstructure:"redis"`
+	Minio       MinIOConfig `mapstructure:"minio"`
 }
 
 var (
@@ -122,7 +129,11 @@ func Init(env Environment) error {
 		v.BindEnv("smtp.username", "APP_SMTP_USERNAME")
 		v.BindEnv("smtp.password", "APP_SMTP_PASSWORD")
 		v.BindEnv("smtp.from_name", "APP_SMTP_FROM_NAME")
-
+		// Bind Minio environment variables
+		v.BindEnv("minio.endpoint", "APP_MINIO_ENDPOINT")
+		v.BindEnv("minio.access_key", "APP_MINIO_ACCESS_KEY")
+		v.BindEnv("minio.secret_key", "APP_MINIO_SECRET_KEY")
+		v.BindEnv("minio.use_ssl", "APP_MINIO_USE_SSL")
 		// Read from config file
 		// Load environment-specific config file
 		v.SetConfigName(fmt.Sprintf("config.%s", env))

@@ -4,6 +4,8 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"pirate-lang-go/core/cache"
+	"pirate-lang-go/core/storage"
 
 	"os"
 	"os/signal"
@@ -19,9 +21,11 @@ import (
 )
 
 type Server struct {
-	echo *echo.Echo
-	addr string
-	db   database.Database
+	echo    *echo.Echo
+	addr    string
+	cache   *cache.Cache
+	db      database.Database
+	storage *storage.Storage
 }
 
 func initEnvironment() (config.Environment, error) {
@@ -82,19 +86,37 @@ func initServer() (*Server, error) {
 		"host", cfg.Server.Host,
 		"port", cfg.Server.Port,
 	)
-
+	// Initialize Redis cache
+	redisCache := cache.NewCache(
+		cfg.Redis.Address,
+		cfg.Redis.Password,
+		cfg.Redis.DB,
+	)
+	//Initialize Minio storage
+	minioStorage, err := storage.NewStorageClient(
+		cfg.Minio.Endpoint,
+		cfg.Minio.AccessKey,
+		cfg.Minio.SecretKey,
+		cfg.Minio.UseSSL,
+	)
+	if err != nil {
+		logger.Error("failed to initialize MinIO client: %w", err)
+		return nil, err
+	}
 	e := echo.New()
 
 	// Middleware
 	e.Use(middleware.LoggerMiddleware())
 
 	// Initialize modules
-	account.Init(e, db)
+	account.Init(e, db, redisCache)
 
 	return &Server{
-		echo: e,
-		addr: fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port),
-		db:   db,
+		echo:    e,
+		addr:    fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port),
+		cache:   redisCache,
+		storage: minioStorage,
+		db:      db,
 	}, nil
 }
 
@@ -117,7 +139,10 @@ func (s *Server) start() error {
 	if err := s.echo.Shutdown(ctx); err != nil {
 		return fmt.Errorf("failed to shutdown server gracefully: %w", err)
 	}
-
+	// Close Redis connection
+	if err := s.cache.Close(); err != nil {
+		logger.Error("Failed to close Redis connection", "error", err)
+	}
 	logger.Info("Server shutdown complete")
 	return nil
 }

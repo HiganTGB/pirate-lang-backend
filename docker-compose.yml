@@ -29,7 +29,26 @@ services:
       interval: 60s
       timeout: 5s
       retries: 5
-
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z-cpuv1
+    container_name: pirate_minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: pirate
+      MINIO_ROOT_PASSWORD: admin123456
+    volumes:
+      #- ./volumes/minio:/data
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 10s
 volumes:
   postgres_data:
   redis_data:
+  minio_data:

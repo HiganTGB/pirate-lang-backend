@@ -6,6 +6,12 @@ import (
 	"github.com/google/uuid"
 )
 
+var validGendersMap = map[string]bool{
+	"male":   true,
+	"female": true,
+	"other":  true,
+}
+
 // TrimSpace removes leading, trailing, and multiple spaces between words
 func TrimSpace(s string) string {
 	return strings.Join(strings.Fields(s), " ")
@@ -59,4 +65,10 @@ func ToNumberWithDefault(s string, defaultValue int) int {
 
 func ToString(s uuid.UUID) string {
 	return s.String()
+}
+
+func isValidGenderWithMap(gender string) bool {
+	genderLower := strings.ToLower(gender)
+	_, ok := validGendersMap[genderLower]
+	return ok
 }
