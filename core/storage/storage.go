@@ -23,7 +23,7 @@ var (
 
 type Storage struct {
 	client         *minio.Client
-	avatarBucket   string
+	imageBucket    string
 	audioBucket    string
 	questionBucket string
 	endpoint       string
@@ -50,7 +50,7 @@ func NewStorageClient(addr, access string, secret string, ssl bool) (*Storage, e
 			return
 		}
 
-		// Test the connection (optional but good practice)
+		// Test the connection
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		_, err = client.ListBuckets(ctx) // Try to list buckets to verify connection
@@ -80,7 +80,7 @@ func NewStorageClient(addr, access string, secret string, ssl bool) (*Storage, e
 
 		instance = &Storage{
 			client:         client,
-			avatarBucket:   AvatarBucket,
+			imageBucket:    AvatarBucket,
 			audioBucket:    AudioBucket,
 			questionBucket: QuestionBucket,
 			endpoint:       addr,
@@ -113,9 +113,6 @@ func generateObjectName(prefix string, originalFilename string) string {
 
 // buildObjectURL constructs a public URL for an object
 func (s *Storage) buildObjectURL(bucket, objectName string) string {
-	// You might need to adjust this URL format based on your MinIO deployment
-	// (e.g., if behind a proxy, CDN, or using a virtual-hosted style access)
-	// For local MinIO, this usually works.
 	scheme := "http"
 	if s.useSSL {
 		scheme = "https"
@@ -123,7 +120,10 @@ func (s *Storage) buildObjectURL(bucket, objectName string) string {
 	return fmt.Sprintf("%s://%s/%s/%s", scheme, s.endpoint, bucket, objectName)
 }
 
-// --- Generic Upload/Replace/Delete Helper Functions ---
+// BuildAvatarURL constructs a public URL for an object
+func (s *Storage) BuildAvatarURL(objectName string) string {
+	return s.buildObjectURL(AvatarBucket, objectName)
+}
 
 // uploadFile uploads a file to a specific bucket with a given object name
 func (s *Storage) uploadFile(ctx context.Context, bucket, objectName string, file io.Reader, fileSize int64, contentType string) (minio.UploadInfo, error) {
@@ -147,43 +147,38 @@ func (s *Storage) deleteFile(ctx context.Context, bucket, objectName string) err
 	return nil
 }
 
-// --- Specific Functions for Avatar, Audio, Question Images ---
-
 // UploadAvatar uploads a new avatar image for a user
 // Returns the new object name and its URL
 func (s *Storage) UploadAvatar(ctx context.Context, userID uuid.UUID, file io.Reader, fileSize int64, filename string) (string, string, error) {
-	// Object name for avatar can be user_id.ext or a unique name under user_id/
-	// For simplicity, let's use userID as part of the object name prefix.
+
 	objectName := generateObjectName(userID.String(), filename)
 	contentType := getContentType(filename)
 
-	_, err := s.uploadFile(ctx, s.avatarBucket, objectName, file, fileSize, contentType)
+	_, err := s.uploadFile(ctx, s.imageBucket, objectName, file, fileSize, contentType)
 	if err != nil {
 		return "", "", err
 	}
-	return objectName, s.buildObjectURL(s.avatarBucket, objectName), nil
+	return objectName, s.buildObjectURL(s.imageBucket, objectName), nil
 }
 
 // ReplaceAvatar replaces an existing avatar image for a user
-// oldObjectName is the full path to the old avatar in MinIO (e.g., "userID/uuid.jpg")
+
 func (s *Storage) ReplaceAvatar(ctx context.Context, userID uuid.UUID, oldObjectName string, file io.Reader, fileSize int64, filename string) (string, string, error) {
-	// First, delete the old avatar if it exists
+	// Delete the old avatar if it exists
 	if oldObjectName != "" {
-		err := s.deleteFile(ctx, s.avatarBucket, oldObjectName)
+		err := s.deleteFile(ctx, s.imageBucket, oldObjectName)
 		if err != nil {
 			logger.Error(fmt.Sprintf("Failed to delete old avatar '%s': %v", oldObjectName, err))
-			// Decide if this should block the new upload or just log a warning
-			// For now, we'll log and proceed with new upload.
 		}
 	}
 
-	// Then, upload the new avatar
+	// Upload the new avatar
 	return s.UploadAvatar(ctx, userID, file, fileSize, filename)
 }
 
 // DeleteAvatar deletes a user's avatar image
 func (s *Storage) DeleteAvatar(ctx context.Context, objectName string) error {
-	return s.deleteFile(ctx, s.avatarBucket, objectName)
+	return s.deleteFile(ctx, s.imageBucket, objectName)
 }
 
 // UploadQuestionAudio uploads a new audio file
@@ -216,7 +211,7 @@ func (s *Storage) DeleteQuestionAudio(ctx context.Context, objectName string) er
 
 // UploadQuestionImage uploads a new image for a question
 func (s *Storage) UploadQuestionImage(ctx context.Context, questionID uuid.UUID, file io.Reader, fileSize int64, filename string) (string, string, error) {
-	// Object name for question image can be questionID/uuid.jpg
+
 	objectName := generateObjectName(questionID.String(), filename)
 	contentType := getContentType(filename)
 
@@ -241,4 +236,33 @@ func (s *Storage) ReplaceQuestionImage(ctx context.Context, questionID uuid.UUID
 // DeleteQuestionImage deletes a question image
 func (s *Storage) DeleteQuestionImage(ctx context.Context, objectName string) error {
 	return s.deleteFile(ctx, s.questionBucket, objectName)
+}
+func (s *Storage) getObject(ctx context.Context, bucket, objectName string) (*minio.Object, minio.ObjectInfo, error) {
+	object, err := s.client.GetObject(ctx, bucket, objectName, minio.GetObjectOptions{})
+	if err != nil {
+		errResponse := minio.ToErrorResponse(err)
+		if errResponse.Code == "NoSuchKey" {
+			logger.Warn(fmt.Sprintf("Object '%s' not found in bucket '%s'.", objectName, bucket))
+			return nil, minio.ObjectInfo{}, fmt.Errorf("object '%s' not found: %w", objectName, err)
+		}
+		logger.Error(fmt.Sprintf("Failed to get object '%s' from bucket '%s': %v", objectName, bucket, err))
+		return nil, minio.ObjectInfo{}, fmt.Errorf("failed to get object '%s': %w", objectName, err)
+	}
+
+	objectInfo, err := object.Stat()
+	if err != nil {
+
+		_ = object.Close()
+		logger.Error(fmt.Sprintf("Failed to stat object '%s' from bucket '%s': %v", objectName, bucket, err))
+		return nil, minio.ObjectInfo{}, fmt.Errorf("failed to get object info for '%s': %w", objectName, err)
+	}
+
+	logger.Info(fmt.Sprintf("Successfully retrieved object '%s' from bucket '%s'. Size: %d", objectName, bucket, objectInfo.Size))
+	return object, objectInfo, nil
+}
+func (s *Storage) GetQuestionImage(ctx context.Context, objectName string) (*minio.Object, minio.ObjectInfo, error) {
+	return s.getObject(ctx, s.questionBucket, objectName)
+}
+func (s *Storage) GetQuestionAudio(ctx context.Context, objectName string) (*minio.Object, minio.ObjectInfo, error) {
+	return s.getObject(ctx, s.audioBucket, objectName)
 }

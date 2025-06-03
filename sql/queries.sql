@@ -34,7 +34,6 @@ LIMIT $1 OFFSET $2;
 -- CreateRole creates a new role.
 INSERT INTO roles (name, description)
 VALUES ($1, $2);
-
 -- name: GetRoles :many
 -- GetRoles retrieves all roles.
 SELECT id, name, description, created_at, updated_at
@@ -84,3 +83,40 @@ SELECT EXISTS(
                       JOIN permissions p ON rp.permission_id = p.id
     WHERE ur.user_id = $1 AND p.id = $2
 );
+
+-- name: LockUser :execresult
+-- LockUser to lock user account
+UPDATE users
+set is_locked=true,lock_reason=$1,locked_at=now()
+where id=$2;
+
+-- name: UnlockUser :execresult
+-- UnlockUser to unlock user account
+UPDATE users
+set is_locked=false,unlock_reason=$1,unlocked_at=now()
+where id=$2;
+-- 00002
+
+-- name: CreateUserProfile :exec
+-- CreateUserProfile creates a new Userprofile.
+INSERT INTO user_profiles(user_id, full_name, birthday, gender, phone_number, address, bio)
+VALUES($1,$2,$3,$4,$5,$6,$7);
+-- name: UpdateUserProfile :exec
+Update user_profiles
+set full_name = $1,birthday=$2,gender=$3,phone_number=$4,address=$5,bio=$6, updated_at = now()
+where user_id =$7;
+-- name: UpdateUserAvatar :exec
+Update user_profiles
+set avatar_url=$1, updated_at = now()
+where user_id =$2;
+-- name: GetUserAvatar :one
+SELECT avatar_url
+FROM  user_profiles
+where user_id =$1;
+-- name: GetUserProfile :one
+SELECT
+    user_id,full_name,birthday,gender,phone_number,address,avatar_url,bio
+FROM
+    user_profiles
+WHERE
+    user_id = $1;

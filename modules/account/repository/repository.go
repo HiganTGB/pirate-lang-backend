@@ -137,3 +137,37 @@ func (r *AccountRepository) UpdatePassword(ctx context.Context, user *entity.Use
 
 	return nil
 }
+func (r *AccountRepository) LockUser(ctx context.Context, userId uuid.UUID, lockReason string) error {
+	result, err := r.Queries.LockUser(ctx, database.LockUserParams{
+		ID:         userId,
+		LockReason: sql.NullString{String: lockReason, Valid: true},
+	})
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return errors.New("no user found to lock")
+	}
+	return nil
+}
+func (r *AccountRepository) UnlockUser(ctx context.Context, userId uuid.UUID, unlockReason string) error {
+	result, err := r.Queries.UnlockUser(ctx, database.UnlockUserParams{
+		ID:           userId,
+		UnlockReason: sql.NullString{String: unlockReason, Valid: true},
+	})
+	if err != nil {
+		return err
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rows == 0 {
+		return errors.New("no user found to unlock")
+	}
+	return nil
+}

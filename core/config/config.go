@@ -48,15 +48,19 @@ type RedisConfig struct {
 	Password string `mapstructure:"password"`
 	DB       int    `mapstructure:"db"`
 }
-
+type ImageSizeConfig struct {
+	Height uint `mapstructure:"height"`
+	Width  uint `mapstructure:"width"`
+}
 type Config struct {
 	Environment Environment
 	Server      ServerConfig
 	Database    DatabaseConfig
 	JWT         JWTConfig
 	SMTP        SMTPConfig
-	Redis       RedisConfig `mapstructure:"redis"`
-	Minio       MinIOConfig `mapstructure:"minio"`
+	Redis       RedisConfig     `mapstructure:"redis"`
+	Minio       MinIOConfig     `mapstructure:"minio"`
+	AvatarSize  ImageSizeConfig `mapstructure:"avatar_size"`
 }
 
 var (
@@ -134,6 +138,9 @@ func Init(env Environment) error {
 		v.BindEnv("minio.access_key", "APP_MINIO_ACCESS_KEY")
 		v.BindEnv("minio.secret_key", "APP_MINIO_SECRET_KEY")
 		v.BindEnv("minio.use_ssl", "APP_MINIO_USE_SSL")
+		// Bind AvatarConfig (size) environment variables
+		v.BindEnv("avatar_size.height", "APP_AVATAR_HEIGHT")
+		v.BindEnv("avatar_size.width", "APP_AVATAR_WIDTH")
 		// Read from config file
 		// Load environment-specific config file
 		v.SetConfigName(fmt.Sprintf("config.%s", env))

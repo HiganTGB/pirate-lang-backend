@@ -3,6 +3,7 @@ package dto
 import (
 	"github.com/google/uuid"
 	"pirate-lang-go/core/dto"
+	"time"
 )
 
 type CreateAccountRequest struct {
@@ -25,6 +26,7 @@ type UserResponse struct {
 	Email         string    `json:"email"`
 	IsSocialLogin bool      `json:"is_social_login"`
 	IsLocked      bool      `json:"is_locked"`
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 type PaginatedUsersResponse = dto.Pagination[*UserResponse]
@@ -71,4 +73,41 @@ type AssignPermissionToRoleRequest struct {
 type AssignRoleToUserRequest struct {
 	UserId uuid.UUID `json:"user_id"`
 	RoleId uuid.UUID `json:"role_id"`
+}
+type CreateUserProfile struct {
+	FullName    string    `json:"full_name"`
+	Birthday    time.Time `json:"birthday"`
+	Gender      string    `json:"gender"`
+	PhoneNumber string    `json:"phone_number"`
+	Address     string    `json:"address"`
+	Bio         string    `json:"bio"`
+}
+type UpdateUserProfile struct {
+	FullName    string    `json:"full_name"`
+	Birthday    time.Time `json:"birthday"`
+	Gender      string    `json:"gender"`
+	PhoneNumber string    `json:"phone_number"`
+	Address     string    `json:"address"`
+	Bio         string    `json:"bio"`
+}
+
+type UpdateUserAvatarResponse struct {
+	Filename  string `json:"original_filename"`
+	ObjectURL string `json:"object_url"`
+}
+
+type LockUserRequest struct {
+	LockReason string `json:"lock_reason"`
+}
+type UnlockUserRequest struct {
+	UnlockReason string `json:"unlock_reason"`
+}
+type ProfileResponse struct {
+	FullName    string    `json:"full_name"`
+	Birthday    time.Time `json:"birthday"`
+	Gender      string    `json:"gender"`
+	PhoneNumber string    `json:"phone_number"`
+	AvatarUrl   string    `json:"avatar_url"`
+	Address     string    `json:"address"`
+	Bio         string    `json:"bio"`
 }

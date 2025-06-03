@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"github.com/google/uuid"
-	"github.com/labstack/gommon/log"
 	"pirate-lang-go/core/constants"
 	"pirate-lang-go/core/errors"
 	"pirate-lang-go/core/logger"
@@ -74,7 +73,7 @@ func (s *AccountService) Login(ctx context.Context, requestData *dto.LoginReques
 	rateKey := fmt.Sprintf("login_rate:%s", requestData.Email)
 	rateCount, _ := s.cache.Get(ctx, rateKey).Int()
 	if rateCount >= 10 { // Max 10 attempts per minute
-		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount:username or email already exists", nil)
+		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount: reached rate limit", nil)
 	}
 
 	// Increment and set rate limit
@@ -85,41 +84,41 @@ func (s *AccountService) Login(ctx context.Context, requestData *dto.LoginReques
 	blockKey := fmt.Sprintf("login_blocked:%s", requestData.Email)
 	blocked, err := s.cache.IsLoginBlocked(ctx, blockKey)
 	if err != nil {
-		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount:username or email already exists", err)
+		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount: cannot connect redis", err)
 	}
 	if blocked {
-		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount:username or email already exists", err)
+		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount:login blocked", err)
 	}
 
 	existingUser, err := s.repo.GetUserByEmailOrUserNameOrId(ctx, requestData.Email, "", uuid.Nil)
 
 	if err != nil {
 		logger.Error("AccountService:Login:Failed to check existing user", "error", err)
-		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount:username or email already exists", err)
+		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount:User not found", err)
 	}
 
 	// Check credentials
 	if existingUser == nil {
-		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount:username or email already exists", err)
+		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount:User not found", err)
 	}
-
+	if existingUser.IsLocked {
+		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount:User is locker", err)
+	}
 	if !utils.ComparePassword(existingUser.Password, requestData.Password) {
-		log.Print(existingUser)
-		log.Print(requestData.Password)
-		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount:username or email already exists", err)
+		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount:Wrong password", err)
 	}
 
 	// Generate access token (expires in 1 day)
 	accessToken, err := utils.GenerateToken(existingUser.ID, existingUser.Email, existingUser.UserName, 24*time.Duration(time.Hour))
 	if err != nil {
 		logger.Error("AccountService:Login:Failed to generate access token", "error", err)
-		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount:username or email already exists", err)
+		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount:cannot connect redis generate", err)
 	}
 	// Generate refresh token (expires in 7 days)
 	refreshToken, err := utils.GenerateToken(existingUser.ID, existingUser.Email, existingUser.UserName, 7*24*time.Duration(time.Hour))
 	if err != nil {
 		logger.Error("AccountService:Login:Failed to generate refresh token", "error", err)
-		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount:username or email already exists", err)
+		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount:cannot connect redis refresh", err)
 	}
 	// Prepare response
 	response := &dto.LoginResponse{
@@ -136,7 +135,6 @@ func (s *AccountService) Logout(ctx context.Context, token string) *errors.AppEr
 		logger.Error("AccountService:Logout:Failed to validate token", "error", err)
 		return errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount:username or email already exists", err)
 	}
-
 	// Calculate remaining time until token expiry
 	expiryTime := time.Until(time.Unix(claims.ExpiresAt.Unix(), 0)).Seconds()
 	if expiryTime <= 0 {
@@ -144,7 +142,7 @@ func (s *AccountService) Logout(ctx context.Context, token string) *errors.AppEr
 	}
 
 	// TODO: Add to blacklist
-
+	//s.cache.AddToBlacklist(ctx, token, time.Duration(expiryTime)*time.Second)
 	return nil
 }
 func (s *AccountService) ChangePassword(ctx context.Context, token string, requestData *dto.ChangePasswordRequest) *errors.AppError {

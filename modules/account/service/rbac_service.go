@@ -15,7 +15,7 @@ func (s *AccountService) CreateRole(ctx context.Context, role *dto.CreateRoleReq
 
 	err := s.repo.CreateRole(ctx, mapper.ToRoleEntity(role))
 	if err != nil {
-		return errors.NewAppError(errors.ErrInternal, "AccountService:CreateAccount:username or email already exists", err)
+		return errors.NewAppError(errors.ErrInternal, "AccountService:CreateRole:internal server error", err)
 	}
 	return nil
 }
@@ -25,7 +25,7 @@ func (s *AccountService) CreatePermission(ctx context.Context, permission *dto.C
 	defer cancel()
 	err := s.repo.CreatePermission(ctx, mapper.ToPermissionEntity(permission))
 	if err != nil {
-		return errors.NewAppError(errors.ErrInternal, "AccountService:CreateAccount:username or email already exists", err)
+		return errors.NewAppError(errors.ErrInternal, "AccountService:CreatePermission:internal server error", err)
 	}
 	return nil
 }

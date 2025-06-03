@@ -127,3 +127,27 @@ func ValidateAssignRoleToUser(dataRequest *dto.AssignRoleToUserRequest) *validat
 	}
 	return result
 }
+func ValidateCreateUserProfile(dataRequest dto.CreateUserProfile) *validation.ValidationResult {
+
+	result := validation.NewValidationResult()
+	// Validate name
+	if utils.IsEmpty(dataRequest.FullName) {
+		result.AddError("name", "Name is required")
+	}
+	if utils.IsEmpty(dataRequest.PhoneNumber) {
+		result.AddError("phone_number", "Phone number is required")
+	}
+	return result
+}
+func ValidateUpdateUserProfile(dataRequest dto.UpdateUserProfile) *validation.ValidationResult {
+
+	result := validation.NewValidationResult()
+	// Validate name
+	if utils.IsEmpty(dataRequest.FullName) {
+		result.AddError("full_name", "Name is required")
+	}
+	if utils.IsEmpty(dataRequest.PhoneNumber) {
+		result.AddError("phone_number", "Phone number is required")
+	}
+	return result
+}

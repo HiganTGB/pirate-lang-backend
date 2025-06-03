@@ -28,18 +28,26 @@ func (r *AccountRouter) Setup(e *echo.Echo, middleware *middleware.Middleware) {
 	auth.POST("/refresh-token", r.controller.RefreshToken)
 	// User routes - requires authentication
 	user := accounts.Group("")
+	user.Use(middleware.AuthMiddleware())
 	user.POST("/logout", r.controller.Logout)
 	user.PUT("/change-password", r.controller.ChangePassword)
+	user.GET("/profile", r.controller.GetProfile)
+	user.POST("/profile", r.controller.CreateProfiles)
+	user.PUT("/profile", r.controller.UpdateProfiles)
+	user.POST("/profile/avatar", r.controller.UpdateAvatar)
 	// Admin routes
 	admin := v1.Group("/admin")
-
+	admin.Use(middleware.AuthMiddleware())
 	// User management routes
 	users := admin.Group("/users")
 	users.GET("", r.controller.GetUsers)
+	users.GET("/:userId/profile", r.controller.GetDetailUser)
+	users.POST("/:userId/lock", r.controller.LockUser)
+	users.POST("/:userId/unlock", r.controller.UnlockUser)
 
 	test := v1.Group("/test")
 	test.GET("/hello", r.controller.HelloWorld)
-	
+
 	// RBAC management routes
 	rbac := admin.Group("/rbac")
 	rbac.GET("/roles", r.controller.GetRoles)

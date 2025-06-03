@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"pirate-lang-go/core/controller"
@@ -74,7 +75,6 @@ func (m *Middleware) AuthMiddleware() echo.MiddlewareFunc {
 			if len(parts) != 2 || parts[0] != "Bearer" {
 				return m.Unauthorized("missing authorization header")
 			}
-
 			// Validate token
 			claims, err := utils.ValidateToken(parts[1])
 			if err != nil {
@@ -83,6 +83,30 @@ func (m *Middleware) AuthMiddleware() echo.MiddlewareFunc {
 
 			// Set user claims in context
 			c.Set("user", claims)
+
+			return next(c)
+		}
+	}
+}
+func (m *Middleware) PermissionMiddleware(requiredPermissions ...string) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			userClaims, ok := c.Get("user").(*utils.Claims)
+			if !ok {
+				return m.Unauthorized("missing authorization header")
+			}
+
+			// Use account service to check permissions
+			hasPermission, err := m.accountService.HasPermission(c.Request().Context(), userClaims.UserID, uuid.Nil)
+			if err != nil {
+				logger.Error("Error checking permissions", "error", err)
+				return m.InternalServerError("error checking permissions")
+			}
+
+			if !hasPermission {
+				return m.Forbidden("insufficient permissions")
+			}
+
 			return next(c)
 		}
 	}

@@ -22,6 +22,9 @@ type Querier interface {
 	CreatePermission(ctx context.Context, arg CreatePermissionParams) error
 	// CreateRole creates a new role.
 	CreateRole(ctx context.Context, arg CreateRoleParams) error
+	// 00002
+	// CreateUserProfile creates a new Userprofile.
+	CreateUserProfile(ctx context.Context, arg CreateUserProfileParams) error
 	// DeletePermission deletes a permission by its ID.
 	DeletePermission(ctx context.Context, id uuid.UUID) error
 	// DeleteRole deletes a role by its ID.
@@ -32,18 +35,26 @@ type Querier interface {
 	GetPermissions(ctx context.Context) ([]Permission, error)
 	// GetRoles retrieves all roles.
 	GetRoles(ctx context.Context) ([]Role, error)
+	GetUserAvatar(ctx context.Context, userID uuid.UUID) (sql.NullString, error)
 	// GetUserByEmailOrUserNameOrId retrieves a user by email, user_name, or id.
 	GetUserByEmailOrUserNameOrId(ctx context.Context, arg GetUserByEmailOrUserNameOrIdParams) (GetUserByEmailOrUserNameOrIdRow, error)
+	GetUserProfile(ctx context.Context, userID uuid.UUID) (GetUserProfileRow, error)
 	// GetUsersCount returns the total number of users.
 	GetUsersCount(ctx context.Context) (int64, error)
 	// HasPermission checks if a user has a specific permission.
 	HasPermission(ctx context.Context, arg HasPermissionParams) (bool, error)
+	// LockUser to lock user account
+	LockUser(ctx context.Context, arg LockUserParams) (sql.Result, error)
 	// PermissionExists checks if a permission with the given ID exists.
 	PermissionExists(ctx context.Context, id uuid.UUID) (bool, error)
 	// RoleExists checks if a role with the given ID exists.
 	RoleExists(ctx context.Context, id uuid.UUID) (bool, error)
+	// UnlockUser to unlock user account
+	UnlockUser(ctx context.Context, arg UnlockUserParams) (sql.Result, error)
 	// UpdatePassword updates the password for a given user ID.
 	UpdatePassword(ctx context.Context, arg UpdatePasswordParams) (sql.Result, error)
+	UpdateUserAvatar(ctx context.Context, arg UpdateUserAvatarParams) error
+	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) error
 }
 
 var _ Querier = (*Queries)(nil)

@@ -109,7 +109,7 @@ func initServer() (*Server, error) {
 	e.Use(middleware.LoggerMiddleware())
 
 	// Initialize modules
-	account.Init(e, db, redisCache)
+	account.Init(e, db, redisCache, minioStorage)
 
 	return &Server{
 		echo:    e,

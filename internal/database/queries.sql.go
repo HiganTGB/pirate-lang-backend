@@ -102,6 +102,37 @@ func (q *Queries) CreateRole(ctx context.Context, arg CreateRoleParams) error {
 	return err
 }
 
+const createUserProfile = `-- name: CreateUserProfile :exec
+
+INSERT INTO user_profiles(user_id, full_name, birthday, gender, phone_number, address, bio)
+VALUES($1,$2,$3,$4,$5,$6,$7)
+`
+
+type CreateUserProfileParams struct {
+	UserID      uuid.UUID      `json:"user_id"`
+	FullName    sql.NullString `json:"full_name"`
+	Birthday    sql.NullTime   `json:"birthday"`
+	Gender      sql.NullString `json:"gender"`
+	PhoneNumber sql.NullString `json:"phone_number"`
+	Address     sql.NullString `json:"address"`
+	Bio         sql.NullString `json:"bio"`
+}
+
+// 00002
+// CreateUserProfile creates a new Userprofile.
+func (q *Queries) CreateUserProfile(ctx context.Context, arg CreateUserProfileParams) error {
+	_, err := q.db.ExecContext(ctx, createUserProfile,
+		arg.UserID,
+		arg.FullName,
+		arg.Birthday,
+		arg.Gender,
+		arg.PhoneNumber,
+		arg.Address,
+		arg.Bio,
+	)
+	return err
+}
+
 const deletePermission = `-- name: DeletePermission :exec
 DELETE FROM permissions WHERE id = $1
 `
@@ -242,6 +273,19 @@ func (q *Queries) GetRoles(ctx context.Context) ([]Role, error) {
 	return items, nil
 }
 
+const getUserAvatar = `-- name: GetUserAvatar :one
+SELECT avatar_url
+FROM  user_profiles
+where user_id =$1
+`
+
+func (q *Queries) GetUserAvatar(ctx context.Context, userID uuid.UUID) (sql.NullString, error) {
+	row := q.db.QueryRowContext(ctx, getUserAvatar, userID)
+	var avatar_url sql.NullString
+	err := row.Scan(&avatar_url)
+	return avatar_url, err
+}
+
 const getUserByEmailOrUserNameOrId = `-- name: GetUserByEmailOrUserNameOrId :one
 SELECT id, user_name, email, password, created_at, updated_at
 FROM users
@@ -282,6 +326,42 @@ func (q *Queries) GetUserByEmailOrUserNameOrId(ctx context.Context, arg GetUserB
 	return i, err
 }
 
+const getUserProfile = `-- name: GetUserProfile :one
+SELECT
+    user_id,full_name,birthday,gender,phone_number,address,avatar_url,bio
+FROM
+    user_profiles
+WHERE
+    user_id = $1
+`
+
+type GetUserProfileRow struct {
+	UserID      uuid.UUID      `json:"user_id"`
+	FullName    sql.NullString `json:"full_name"`
+	Birthday    sql.NullTime   `json:"birthday"`
+	Gender      sql.NullString `json:"gender"`
+	PhoneNumber sql.NullString `json:"phone_number"`
+	Address     sql.NullString `json:"address"`
+	AvatarUrl   sql.NullString `json:"avatar_url"`
+	Bio         sql.NullString `json:"bio"`
+}
+
+func (q *Queries) GetUserProfile(ctx context.Context, userID uuid.UUID) (GetUserProfileRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserProfile, userID)
+	var i GetUserProfileRow
+	err := row.Scan(
+		&i.UserID,
+		&i.FullName,
+		&i.Birthday,
+		&i.Gender,
+		&i.PhoneNumber,
+		&i.Address,
+		&i.AvatarUrl,
+		&i.Bio,
+	)
+	return i, err
+}
+
 const getUsersCount = `-- name: GetUsersCount :one
 SELECT COUNT(*) FROM users
 `
@@ -316,6 +396,22 @@ func (q *Queries) HasPermission(ctx context.Context, arg HasPermissionParams) (b
 	return exists, err
 }
 
+const lockUser = `-- name: LockUser :execresult
+UPDATE users
+set is_locked=true,lock_reason=$1,locked_at=now()
+where id=$2
+`
+
+type LockUserParams struct {
+	LockReason sql.NullString `json:"lock_reason"`
+	ID         uuid.UUID      `json:"id"`
+}
+
+// LockUser to lock user account
+func (q *Queries) LockUser(ctx context.Context, arg LockUserParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, lockUser, arg.LockReason, arg.ID)
+}
+
 const permissionExists = `-- name: PermissionExists :one
 SELECT EXISTS(SELECT 1 FROM permissions WHERE id = $1)
 `
@@ -340,6 +436,22 @@ func (q *Queries) RoleExists(ctx context.Context, id uuid.UUID) (bool, error) {
 	return exists, err
 }
 
+const unlockUser = `-- name: UnlockUser :execresult
+UPDATE users
+set is_locked=false,unlock_reason=$1,unlocked_at=now()
+where id=$2
+`
+
+type UnlockUserParams struct {
+	UnlockReason sql.NullString `json:"unlock_reason"`
+	ID           uuid.UUID      `json:"id"`
+}
+
+// UnlockUser to unlock user account
+func (q *Queries) UnlockUser(ctx context.Context, arg UnlockUserParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, unlockUser, arg.UnlockReason, arg.ID)
+}
+
 const updatePassword = `-- name: UpdatePassword :execresult
 UPDATE users
 SET password = $1, updated_at = NOW()
@@ -354,4 +466,49 @@ type UpdatePasswordParams struct {
 // UpdatePassword updates the password for a given user ID.
 func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) (sql.Result, error) {
 	return q.db.ExecContext(ctx, updatePassword, arg.Password, arg.ID)
+}
+
+const updateUserAvatar = `-- name: UpdateUserAvatar :exec
+Update user_profiles
+set avatar_url=$1, updated_at = now()
+where user_id =$2
+`
+
+type UpdateUserAvatarParams struct {
+	AvatarUrl sql.NullString `json:"avatar_url"`
+	UserID    uuid.UUID      `json:"user_id"`
+}
+
+func (q *Queries) UpdateUserAvatar(ctx context.Context, arg UpdateUserAvatarParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserAvatar, arg.AvatarUrl, arg.UserID)
+	return err
+}
+
+const updateUserProfile = `-- name: UpdateUserProfile :exec
+Update user_profiles
+set full_name = $1,birthday=$2,gender=$3,phone_number=$4,address=$5,bio=$6, updated_at = now()
+where user_id =$7
+`
+
+type UpdateUserProfileParams struct {
+	FullName    sql.NullString `json:"full_name"`
+	Birthday    sql.NullTime   `json:"birthday"`
+	Gender      sql.NullString `json:"gender"`
+	PhoneNumber sql.NullString `json:"phone_number"`
+	Address     sql.NullString `json:"address"`
+	Bio         sql.NullString `json:"bio"`
+	UserID      uuid.UUID      `json:"user_id"`
+}
+
+func (q *Queries) UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserProfile,
+		arg.FullName,
+		arg.Birthday,
+		arg.Gender,
+		arg.PhoneNumber,
+		arg.Address,
+		arg.Bio,
+		arg.UserID,
+	)
+	return err
 }

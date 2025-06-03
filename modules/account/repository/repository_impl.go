@@ -23,7 +23,14 @@ type IAccountRepository interface {
 	CreateAccount(ctx context.Context, user *entity.User) (*entity.User, error)
 	UpdatePassword(ctx context.Context, user *entity.User) error
 	GetUsers(ctx context.Context, pageNumber, pageSize int) (*entity.PaginatedUsers, error)
-
+	LockUser(ctx context.Context, userId uuid.UUID, lockReason string) error
+	UnlockUser(ctx context.Context, userId uuid.UUID, unlockReason string) error
+	// Profile
+	CreateProfile(ctx context.Context, profile *entity.UserProfile) error
+	UpdateProfile(ctx context.Context, profile *entity.UserProfile) error
+	GetProfile(ctx context.Context, userId uuid.UUID) (*entity.UserProfile, error)
+	UpdateAvatar(ctx context.Context, updateAvatarUrl string, userID uuid.UUID) error
+	GetAvatar(ctx context.Context, userID uuid.UUID) (string, error)
 	// Rbac
 	CreateRole(ctx context.Context, role *entity.Role) error
 	GetRoles(ctx context.Context) ([]*entity.Role, error)

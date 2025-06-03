@@ -1,8 +1,10 @@
 package mapper
 
 import (
+	"github.com/google/uuid"
 	"pirate-lang-go/modules/account/dto"
 	"pirate-lang-go/modules/account/entity"
+	"time"
 )
 
 func ToUserEntity(user *dto.CreateAccountRequest) *entity.User {
@@ -30,6 +32,7 @@ func ToPaginatedUsersResponse(users *entity.PaginatedUsers) *dto.PaginatedUsersR
 			Email:         user.Email,
 			IsSocialLogin: user.IsSocialLogin,
 			IsLocked:      user.IsLocked,
+			CreatedAt:     user.CreatedAt,
 		})
 	}
 
@@ -89,4 +92,57 @@ func ToPermissionResponses(permissions []*entity.Permission) []*dto.PermissionRe
 		})
 	}
 	return permissionResponses
+}
+
+func ToProfileEntity(profile *dto.CreateUserProfile, userId *uuid.UUID) *entity.UserProfile {
+	if profile == nil {
+		return nil
+	}
+	if userId == nil {
+		return nil
+	}
+	return &entity.UserProfile{
+		UserId:      *userId,
+		FullName:    profile.FullName,
+		Birthday:    &profile.Birthday,
+		Gender:      profile.Gender,
+		PhoneNumber: profile.PhoneNumber,
+		Address:     profile.Address,
+		Bio:         profile.Bio,
+	}
+}
+func ToUpdateProfileEntity(profile *dto.UpdateUserProfile, userId *uuid.UUID) *entity.UserProfile {
+	if profile == nil {
+		return nil
+	}
+	if userId == nil {
+		return nil
+	}
+	return &entity.UserProfile{
+		UserId:      *userId,
+		FullName:    profile.FullName,
+		Birthday:    &profile.Birthday,
+		Gender:      profile.Gender,
+		PhoneNumber: profile.PhoneNumber,
+		Address:     profile.Address,
+		Bio:         profile.Bio,
+	}
+}
+func ToProfileResponse(profile *entity.UserProfile, url string) *dto.ProfileResponse {
+	if profile == nil {
+		return nil
+	}
+	birthday := time.Time{}
+	if profile.Birthday != nil {
+		birthday = *profile.Birthday
+	}
+	return &dto.ProfileResponse{
+		FullName:    profile.FullName,
+		Birthday:    birthday,
+		Gender:      profile.Gender,
+		PhoneNumber: profile.PhoneNumber,
+		AvatarUrl:   url,
+		Address:     profile.Address,
+		Bio:         profile.Bio,
+	}
 }

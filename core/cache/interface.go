@@ -16,4 +16,6 @@ type ICache interface {
 	Close() error
 	IsLoginBlocked(ctx context.Context, key string) (bool, error)
 	IncrementLoginAttempt(ctx context.Context, key string) error
+	AddToBlacklist(ctx context.Context, tokenID string, expiration time.Duration) error
+	IsTokenBlacklisted(ctx context.Context, tokenID string) (bool, error)
 }

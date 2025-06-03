@@ -23,9 +23,8 @@ func ValidateAndParseToken(tokenString string) (*TokenClaims, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
 		}
-		return config.Get().JWT.Secret, nil
+		return []byte(config.Get().JWT.Secret), nil
 	})
-
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +41,7 @@ func ValidateJWTToken(tokenString string) error {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
 		}
-		return []byte("your-secret-key"), nil
+		return []byte(config.Get().JWT.Secret), nil
 	})
 	return err
 }

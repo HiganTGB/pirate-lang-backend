@@ -104,3 +104,16 @@ func (c *Cache) IncrementLoginAttempt(ctx context.Context, key string) error {
 	}
 	return nil
 }
+func (c *Cache) AddToBlacklist(ctx context.Context, tokenID string, expiration time.Duration) error {
+	key := "blacklist:token:" + tokenID
+	return c.client.Set(ctx, key, "", expiration).Err()
+}
+func (c *Cache) IsTokenBlacklisted(ctx context.Context, tokenID string) (bool, error) {
+	key := "blacklist:token:" + tokenID
+	// If the key exists, it means the token is blacklisted.
+	_, err := c.client.Get(ctx, key).Result()
+	if err != nil {
+		return false, err
+	}
+	return true, nil // Token found in blacklist
+}
