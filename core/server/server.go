@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"pirate-lang-go/core/cache"
 	"pirate-lang-go/core/storage"
+	"pirate-lang-go/modules/library"
 
 	"os"
 	"os/signal"
@@ -110,7 +111,7 @@ func initServer() (*Server, error) {
 
 	// Initialize modules
 	account.Init(e, db, redisCache, minioStorage)
-
+	library.Init(e, db, redisCache, minioStorage)
 	return &Server{
 		echo:    e,
 		addr:    fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port),
