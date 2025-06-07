@@ -18,8 +18,13 @@ type Querier interface {
 	AssignRoleToUser(ctx context.Context, arg AssignRoleToUserParams) error
 	// CreateAccount creates a new user and returns selected fields.
 	CreateAccount(ctx context.Context, arg CreateAccountParams) (CreateAccountRow, error)
+	// ========================
+	// 002
+	// ========================
+	CreatePart(ctx context.Context, arg CreatePartParams) error
 	// CreatePermission creates a new permission.
 	CreatePermission(ctx context.Context, arg CreatePermissionParams) error
+	CreateQuestionGroup(ctx context.Context, arg CreateQuestionGroupParams) (uuid.UUID, error)
 	// CreateRole creates a new role.
 	CreateRole(ctx context.Context, arg CreateRoleParams) error
 	// 00002
@@ -29,8 +34,11 @@ type Querier interface {
 	DeletePermission(ctx context.Context, id uuid.UUID) error
 	// DeleteRole deletes a role by its ID.
 	DeleteRole(ctx context.Context, id uuid.UUID) error
+	GetPaginatedParts(ctx context.Context, arg GetPaginatedPartsParams) ([]Part, error)
 	// GetPaginatedUsers retrieves a list of users with pagination.
 	GetPaginatedUsers(ctx context.Context, arg GetPaginatedUsersParams) ([]GetPaginatedUsersRow, error)
+	GetPart(ctx context.Context, partID uuid.UUID) (Part, error)
+	GetPartsCount(ctx context.Context) (int64, error)
 	// GetPermissions retrieves all permissions.
 	GetPermissions(ctx context.Context) ([]Permission, error)
 	// GetRoles retrieves all roles.
@@ -51,8 +59,13 @@ type Querier interface {
 	RoleExists(ctx context.Context, id uuid.UUID) (bool, error)
 	// UnlockUser to unlock user account
 	UnlockUser(ctx context.Context, arg UnlockUserParams) (sql.Result, error)
+	UpdateAudioContentQuestionGroup(ctx context.Context, arg UpdateAudioContentQuestionGroupParams) error
+	UpdateImageContentQuestionGroup(ctx context.Context, arg UpdateImageContentQuestionGroupParams) error
+	UpdatePart(ctx context.Context, arg UpdatePartParams) error
 	// UpdatePassword updates the password for a given user ID.
 	UpdatePassword(ctx context.Context, arg UpdatePasswordParams) (sql.Result, error)
+	UpdateQuestionGroup(ctx context.Context, arg UpdateQuestionGroupParams) error
+	UpdateTextContentQuestionGroup(ctx context.Context, arg UpdateTextContentQuestionGroupParams) error
 	UpdateUserAvatar(ctx context.Context, arg UpdateUserAvatarParams) error
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) error
 }

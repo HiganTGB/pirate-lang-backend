@@ -10,12 +10,64 @@ import (
 	"github.com/google/uuid"
 )
 
+type Part struct {
+	PartID      uuid.UUID      `json:"part_id"`
+	Skill       string         `json:"skill"`
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	Sequence    int32          `json:"sequence"`
+	CreatedAt   sql.NullTime   `json:"created_at"`
+	UpdatedAt   sql.NullTime   `json:"updated_at"`
+}
+
 type Permission struct {
 	ID          uuid.UUID      `json:"id"`
 	Name        string         `json:"name"`
 	Description sql.NullString `json:"description"`
 	CreatedAt   sql.NullTime   `json:"created_at"`
 	UpdatedAt   sql.NullTime   `json:"updated_at"`
+}
+
+type Question struct {
+	QuestionID           uuid.UUID      `json:"question_id"`
+	QuestionGroupID      uuid.NullUUID  `json:"question_group_id"`
+	QuestionOrder        int32          `json:"question_order"`
+	TextContent          sql.NullString `json:"text_content"`
+	AudioUrl             sql.NullString `json:"audio_url"`
+	ImageUrl             sql.NullString `json:"image_url"`
+	ExpectedAnswerFormat sql.NullString `json:"expected_answer_format"`
+	CreatedAt            sql.NullTime   `json:"created_at"`
+	UpdatedAt            sql.NullTime   `json:"updated_at"`
+}
+
+type QuestionGroup struct {
+	QuestionGroupID    uuid.UUID      `json:"question_group_id"`
+	Name               string         `json:"name"`
+	Description        sql.NullString `json:"description"`
+	ContextTextContent sql.NullString `json:"context_text_content"`
+	ContextAudioUrl    sql.NullString `json:"context_audio_url"`
+	ContextImageUrl    sql.NullString `json:"context_image_url"`
+	PartID             uuid.UUID      `json:"part_id"`
+	GroupType          string         `json:"group_type"`
+	CreatedAt          sql.NullTime   `json:"created_at"`
+	UpdatedAt          sql.NullTime   `json:"updated_at"`
+	PlanType           string         `json:"plan_type"`
+	Version            int32          `json:"version"`
+	IsLocked           sql.NullBool   `json:"is_locked"`
+	LockedAt           sql.NullTime   `json:"locked_at"`
+	LockReason         sql.NullString `json:"lock_reason"`
+	UnlockedAt         sql.NullTime   `json:"unlocked_at"`
+	UnlockReason       sql.NullString `json:"unlock_reason"`
+}
+
+type QuestionOption struct {
+	OptionID        uuid.UUID    `json:"option_id"`
+	QuestionID      uuid.UUID    `json:"question_id"`
+	OptionName      string       `json:"option_name"`
+	OptionValue     string       `json:"option_value"`
+	IsCorrectOption sql.NullBool `json:"is_correct_option"`
+	CreatedAt       sql.NullTime `json:"created_at"`
+	UpdatedAt       sql.NullTime `json:"updated_at"`
 }
 
 type Role struct {

@@ -70,6 +70,32 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (C
 	return i, err
 }
 
+const createPart = `-- name: CreatePart :exec
+
+INSERT INTO parts(skill, name, description, sequence)
+VALUES($1,$2,$3,$4)
+`
+
+type CreatePartParams struct {
+	Skill       string         `json:"skill"`
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	Sequence    int32          `json:"sequence"`
+}
+
+// ========================
+// 002
+// ========================
+func (q *Queries) CreatePart(ctx context.Context, arg CreatePartParams) error {
+	_, err := q.db.ExecContext(ctx, createPart,
+		arg.Skill,
+		arg.Name,
+		arg.Description,
+		arg.Sequence,
+	)
+	return err
+}
+
 const createPermission = `-- name: CreatePermission :exec
 INSERT INTO permissions (name, description)
 VALUES ($1, $2)
@@ -84,6 +110,34 @@ type CreatePermissionParams struct {
 func (q *Queries) CreatePermission(ctx context.Context, arg CreatePermissionParams) error {
 	_, err := q.db.ExecContext(ctx, createPermission, arg.Name, arg.Description)
 	return err
+}
+
+const createQuestionGroup = `-- name: CreateQuestionGroup :one
+INSERT INTO  question_groups
+    (name, description, part_id,plan_type, group_type)
+VALUES($1,$2,$3,$4,$5)
+RETURNING question_group_id
+`
+
+type CreateQuestionGroupParams struct {
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	PartID      uuid.UUID      `json:"part_id"`
+	PlanType    string         `json:"plan_type"`
+	GroupType   string         `json:"group_type"`
+}
+
+func (q *Queries) CreateQuestionGroup(ctx context.Context, arg CreateQuestionGroupParams) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, createQuestionGroup,
+		arg.Name,
+		arg.Description,
+		arg.PartID,
+		arg.PlanType,
+		arg.GroupType,
+	)
+	var question_group_id uuid.UUID
+	err := row.Scan(&question_group_id)
+	return question_group_id, err
 }
 
 const createRole = `-- name: CreateRole :exec
@@ -153,6 +207,49 @@ func (q *Queries) DeleteRole(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const getPaginatedParts = `-- name: GetPaginatedParts :many
+SELECT part_id, skill, name, description, sequence, created_at, updated_at
+FROM parts
+ORDER BY created_at DESC
+LIMIT $1 OFFSET $2
+`
+
+type GetPaginatedPartsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) GetPaginatedParts(ctx context.Context, arg GetPaginatedPartsParams) ([]Part, error) {
+	rows, err := q.db.QueryContext(ctx, getPaginatedParts, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Part{}
+	for rows.Next() {
+		var i Part
+		if err := rows.Scan(
+			&i.PartID,
+			&i.Skill,
+			&i.Name,
+			&i.Description,
+			&i.Sequence,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getPaginatedUsers = `-- name: GetPaginatedUsers :many
 SELECT id, user_name, email, created_at, updated_at
 FROM users
@@ -201,6 +298,38 @@ func (q *Queries) GetPaginatedUsers(ctx context.Context, arg GetPaginatedUsersPa
 		return nil, err
 	}
 	return items, nil
+}
+
+const getPart = `-- name: GetPart :one
+SELECT part_id, skill, name, description, sequence, created_at, updated_at
+FROM parts
+WHERE part_id=$1
+`
+
+func (q *Queries) GetPart(ctx context.Context, partID uuid.UUID) (Part, error) {
+	row := q.db.QueryRowContext(ctx, getPart, partID)
+	var i Part
+	err := row.Scan(
+		&i.PartID,
+		&i.Skill,
+		&i.Name,
+		&i.Description,
+		&i.Sequence,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getPartsCount = `-- name: GetPartsCount :one
+SELECT COUNT(*) FROM parts
+`
+
+func (q *Queries) GetPartsCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getPartsCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const getPermissions = `-- name: GetPermissions :many
@@ -452,6 +581,63 @@ func (q *Queries) UnlockUser(ctx context.Context, arg UnlockUserParams) (sql.Res
 	return q.db.ExecContext(ctx, unlockUser, arg.UnlockReason, arg.ID)
 }
 
+const updateAudioContentQuestionGroup = `-- name: UpdateAudioContentQuestionGroup :exec
+UPDATE question_groups
+SET context_audio_url=$1
+WHERE question_group_id=$2
+`
+
+type UpdateAudioContentQuestionGroupParams struct {
+	ContextAudioUrl sql.NullString `json:"context_audio_url"`
+	QuestionGroupID uuid.UUID      `json:"question_group_id"`
+}
+
+func (q *Queries) UpdateAudioContentQuestionGroup(ctx context.Context, arg UpdateAudioContentQuestionGroupParams) error {
+	_, err := q.db.ExecContext(ctx, updateAudioContentQuestionGroup, arg.ContextAudioUrl, arg.QuestionGroupID)
+	return err
+}
+
+const updateImageContentQuestionGroup = `-- name: UpdateImageContentQuestionGroup :exec
+UPDATE question_groups
+SET context_image_url=$1
+WHERE question_group_id=$2
+`
+
+type UpdateImageContentQuestionGroupParams struct {
+	ContextImageUrl sql.NullString `json:"context_image_url"`
+	QuestionGroupID uuid.UUID      `json:"question_group_id"`
+}
+
+func (q *Queries) UpdateImageContentQuestionGroup(ctx context.Context, arg UpdateImageContentQuestionGroupParams) error {
+	_, err := q.db.ExecContext(ctx, updateImageContentQuestionGroup, arg.ContextImageUrl, arg.QuestionGroupID)
+	return err
+}
+
+const updatePart = `-- name: UpdatePart :exec
+UPDATE parts
+SET skill=$1,name=$2,description=$3,sequence=$4
+WHERE part_id=$5
+`
+
+type UpdatePartParams struct {
+	Skill       string         `json:"skill"`
+	Name        string         `json:"name"`
+	Description sql.NullString `json:"description"`
+	Sequence    int32          `json:"sequence"`
+	PartID      uuid.UUID      `json:"part_id"`
+}
+
+func (q *Queries) UpdatePart(ctx context.Context, arg UpdatePartParams) error {
+	_, err := q.db.ExecContext(ctx, updatePart,
+		arg.Skill,
+		arg.Name,
+		arg.Description,
+		arg.Sequence,
+		arg.PartID,
+	)
+	return err
+}
+
 const updatePassword = `-- name: UpdatePassword :execresult
 UPDATE users
 SET password = $1, updated_at = NOW()
@@ -468,9 +654,52 @@ func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) 
 	return q.db.ExecContext(ctx, updatePassword, arg.Password, arg.ID)
 }
 
+const updateQuestionGroup = `-- name: UpdateQuestionGroup :exec
+UPDATE question_groups
+SET name=$1,description=$2,part_id=$3,plan_type=$4,group_type=$5
+WHERE question_group_id=$6
+`
+
+type UpdateQuestionGroupParams struct {
+	Name            string         `json:"name"`
+	Description     sql.NullString `json:"description"`
+	PartID          uuid.UUID      `json:"part_id"`
+	PlanType        string         `json:"plan_type"`
+	GroupType       string         `json:"group_type"`
+	QuestionGroupID uuid.UUID      `json:"question_group_id"`
+}
+
+func (q *Queries) UpdateQuestionGroup(ctx context.Context, arg UpdateQuestionGroupParams) error {
+	_, err := q.db.ExecContext(ctx, updateQuestionGroup,
+		arg.Name,
+		arg.Description,
+		arg.PartID,
+		arg.PlanType,
+		arg.GroupType,
+		arg.QuestionGroupID,
+	)
+	return err
+}
+
+const updateTextContentQuestionGroup = `-- name: UpdateTextContentQuestionGroup :exec
+UPDATE question_groups
+SET context_text_content=$1
+WHERE question_group_id=$2
+`
+
+type UpdateTextContentQuestionGroupParams struct {
+	ContextTextContent sql.NullString `json:"context_text_content"`
+	QuestionGroupID    uuid.UUID      `json:"question_group_id"`
+}
+
+func (q *Queries) UpdateTextContentQuestionGroup(ctx context.Context, arg UpdateTextContentQuestionGroupParams) error {
+	_, err := q.db.ExecContext(ctx, updateTextContentQuestionGroup, arg.ContextTextContent, arg.QuestionGroupID)
+	return err
+}
+
 const updateUserAvatar = `-- name: UpdateUserAvatar :exec
 Update user_profiles
-set avatar_url=$1, updated_at = now()
+set avatar_url=$1
 where user_id =$2
 `
 
@@ -486,7 +715,7 @@ func (q *Queries) UpdateUserAvatar(ctx context.Context, arg UpdateUserAvatarPara
 
 const updateUserProfile = `-- name: UpdateUserProfile :exec
 Update user_profiles
-set full_name = $1,birthday=$2,gender=$3,phone_number=$4,address=$5,bio=$6, updated_at = now()
+set full_name = $1,birthday=$2,gender=$3,phone_number=$4,address=$5,bio=$6
 where user_id =$7
 `
 

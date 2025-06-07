@@ -103,11 +103,11 @@ INSERT INTO user_profiles(user_id, full_name, birthday, gender, phone_number, ad
 VALUES($1,$2,$3,$4,$5,$6,$7);
 -- name: UpdateUserProfile :exec
 Update user_profiles
-set full_name = $1,birthday=$2,gender=$3,phone_number=$4,address=$5,bio=$6, updated_at = now()
+set full_name = $1,birthday=$2,gender=$3,phone_number=$4,address=$5,bio=$6
 where user_id =$7;
 -- name: UpdateUserAvatar :exec
 Update user_profiles
-set avatar_url=$1, updated_at = now()
+set avatar_url=$1
 where user_id =$2;
 -- name: GetUserAvatar :one
 SELECT avatar_url
@@ -120,3 +120,51 @@ FROM
     user_profiles
 WHERE
     user_id = $1;
+
+-- ========================
+-- 002
+-- ========================
+
+-- name: CreatePart :exec
+INSERT INTO parts(skill, name, description, sequence)
+VALUES($1,$2,$3,$4);
+-- name: UpdatePart :exec
+UPDATE parts
+SET skill=$1,name=$2,description=$3,sequence=$4
+WHERE part_id=$5;
+-- name: GetPartsCount :one
+SELECT COUNT(*) FROM parts;
+
+-- name: GetPaginatedParts :many
+SELECT part_id, skill, name, description, sequence, created_at, updated_at
+FROM parts
+ORDER BY created_at DESC
+LIMIT $1 OFFSET $2;
+
+-- name: GetPart :one
+SELECT part_id, skill, name, description, sequence, created_at, updated_at
+FROM parts
+WHERE part_id=$1;
+
+
+-- name: CreateQuestionGroup :one
+INSERT INTO  question_groups
+    (name, description, part_id,plan_type, group_type)
+VALUES($1,$2,$3,$4,$5)
+RETURNING question_group_id;
+-- name: UpdateQuestionGroup :exec
+UPDATE question_groups
+SET name=$1,description=$2,part_id=$3,plan_type=$4,group_type=$5
+WHERE question_group_id=$6;
+-- name: UpdateTextContentQuestionGroup :exec
+UPDATE question_groups
+SET context_text_content=$1
+WHERE question_group_id=$2;
+-- name: UpdateAudioContentQuestionGroup :exec
+UPDATE question_groups
+SET context_audio_url=$1
+WHERE question_group_id=$2;
+-- name: UpdateImageContentQuestionGroup :exec
+UPDATE question_groups
+SET context_image_url=$1
+WHERE question_group_id=$2;

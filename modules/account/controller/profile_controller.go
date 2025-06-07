@@ -20,7 +20,7 @@ func (controller *AccountController) CreateProfiles(c echo.Context) error {
 	if err := c.Bind(requestData); err != nil {
 		return controller.BadRequest("Invalid request data", err)
 	}
-	resultValidator := validator.ValidateCreateUserProfile(*requestData)
+	resultValidator := validator.ValidateCreateUserProfile(requestData)
 	if !resultValidator.Valid {
 		return controller.BadRequest("Invalid request data", resultValidator.Errors)
 	}
@@ -42,7 +42,7 @@ func (controller *AccountController) UpdateProfiles(c echo.Context) error {
 	if err := c.Bind(requestData); err != nil {
 		return controller.BadRequest("Invalid request data", err)
 	}
-	resultValidator := validator.ValidateUpdateUserProfile(*requestData)
+	resultValidator := validator.ValidateUpdateUserProfile(requestData)
 	if !resultValidator.Valid {
 		return controller.BadRequest("Invalid request data", resultValidator.Errors)
 	}
