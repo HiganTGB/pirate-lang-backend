@@ -127,8 +127,11 @@ func ValidateAssignRoleToUser(dataRequest *dto.AssignRoleToUserRequest) *validat
 	}
 	return result
 }
-func ValidateCreateUserProfile(dataRequest dto.CreateUserProfile) *validation.ValidationResult {
+func ValidateCreateUserProfile(dataRequest *dto.CreateUserProfile) *validation.ValidationResult {
 
+	if dataRequest == nil {
+		return nil
+	}
 	result := validation.NewValidationResult()
 	// Validate name
 	if utils.IsEmpty(dataRequest.FullName) {
@@ -139,8 +142,11 @@ func ValidateCreateUserProfile(dataRequest dto.CreateUserProfile) *validation.Va
 	}
 	return result
 }
-func ValidateUpdateUserProfile(dataRequest dto.UpdateUserProfile) *validation.ValidationResult {
+func ValidateUpdateUserProfile(dataRequest *dto.UpdateUserProfile) *validation.ValidationResult {
 
+	if dataRequest == nil {
+		return nil
+	}
 	result := validation.NewValidationResult()
 	// Validate name
 	if utils.IsEmpty(dataRequest.FullName) {
