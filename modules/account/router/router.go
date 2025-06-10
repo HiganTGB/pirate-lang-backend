@@ -18,7 +18,6 @@ func NewAccountRouter(controller *controller.AccountController) *AccountRouter {
 func (r *AccountRouter) Setup(e *echo.Echo, middleware *middleware.Middleware) {
 	// API v1 group
 	v1 := e.Group("/v1")
-
 	// Account routes group
 	accounts := v1.Group("/accounts")
 	// Auth routes - no middleware needed

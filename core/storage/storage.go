@@ -32,7 +32,7 @@ type Storage struct {
 
 // Constants for bucket names
 const (
-	AvatarBucket   = "avatars"
+	ImageBucket    = "images"
 	AudioBucket    = "audio-files"
 	QuestionBucket = "question-images"
 )
@@ -61,7 +61,7 @@ func NewStorageClient(addr, access string, secret string, ssl bool) (*Storage, e
 		logger.Info("Successfully connected to MinIO.")
 
 		// Initialize and ensure buckets exist
-		bucketsToCreate := []string{AvatarBucket, AudioBucket, QuestionBucket}
+		bucketsToCreate := []string{ImageBucket, AudioBucket, QuestionBucket}
 		for _, b := range bucketsToCreate {
 			found, err := client.BucketExists(ctx, b)
 			if err != nil {
@@ -80,7 +80,7 @@ func NewStorageClient(addr, access string, secret string, ssl bool) (*Storage, e
 
 		instance = &Storage{
 			client:         client,
-			imageBucket:    AvatarBucket,
+			imageBucket:    ImageBucket,
 			audioBucket:    AudioBucket,
 			questionBucket: QuestionBucket,
 			endpoint:       addr,
@@ -110,6 +110,14 @@ func generateObjectName(prefix string, originalFilename string) string {
 	}
 	return fmt.Sprintf("%s%s", uniqueID, ext)
 }
+func buildObjectName(folder string, originalFilename string, name string) string {
+	ext := filepath.Ext(originalFilename)
+	uniqueID := uuid.New().String()
+	if folder != "" {
+		return fmt.Sprintf("%s/%s%s", folder, name, ext)
+	}
+	return fmt.Sprintf("%s%s", uniqueID, ext)
+}
 
 // buildObjectURL constructs a public URL for an object
 func (s *Storage) buildObjectURL(bucket, objectName string) string {
@@ -122,7 +130,7 @@ func (s *Storage) buildObjectURL(bucket, objectName string) string {
 
 // BuildAvatarURL constructs a public URL for an object
 func (s *Storage) BuildAvatarURL(objectName string) string {
-	return s.buildObjectURL(AvatarBucket, objectName)
+	return s.buildObjectURL(ImageBucket, objectName)
 }
 
 // uploadFile uploads a file to a specific bucket with a given object name
@@ -151,9 +159,8 @@ func (s *Storage) deleteFile(ctx context.Context, bucket, objectName string) err
 // Returns the new object name and its URL
 func (s *Storage) UploadAvatar(ctx context.Context, userID uuid.UUID, file io.Reader, fileSize int64, filename string) (string, string, error) {
 
-	objectName := generateObjectName(userID.String(), filename)
+	objectName := buildObjectName("avatars", filename, userID.String())
 	contentType := getContentType(filename)
-
 	_, err := s.uploadFile(ctx, s.imageBucket, objectName, file, fileSize, contentType)
 	if err != nil {
 		return "", "", err
@@ -161,82 +168,6 @@ func (s *Storage) UploadAvatar(ctx context.Context, userID uuid.UUID, file io.Re
 	return objectName, s.buildObjectURL(s.imageBucket, objectName), nil
 }
 
-// ReplaceAvatar replaces an existing avatar image for a user
-
-func (s *Storage) ReplaceAvatar(ctx context.Context, userID uuid.UUID, oldObjectName string, file io.Reader, fileSize int64, filename string) (string, string, error) {
-	// Delete the old avatar if it exists
-	if oldObjectName != "" {
-		err := s.deleteFile(ctx, s.imageBucket, oldObjectName)
-		if err != nil {
-			logger.Error(fmt.Sprintf("Failed to delete old avatar '%s': %v", oldObjectName, err))
-		}
-	}
-
-	// Upload the new avatar
-	return s.UploadAvatar(ctx, userID, file, fileSize, filename)
-}
-
-// DeleteAvatar deletes a user's avatar image
-func (s *Storage) DeleteAvatar(ctx context.Context, objectName string) error {
-	return s.deleteFile(ctx, s.imageBucket, objectName)
-}
-
-// UploadQuestionAudio uploads a new audio file
-func (s *Storage) UploadQuestionAudio(ctx context.Context, file io.Reader, fileSize int64, filename string) (string, string, error) {
-	objectName := generateObjectName("", filename) // No specific prefix for audio example
-	contentType := getContentType(filename)
-
-	_, err := s.uploadFile(ctx, s.audioBucket, objectName, file, fileSize, contentType)
-	if err != nil {
-		return "", "", err
-	}
-	return objectName, s.buildObjectURL(s.audioBucket, objectName), nil
-}
-
-// ReplaceQuestionAudio replaces an existing audio file
-func (s *Storage) ReplaceQuestionAudio(ctx context.Context, oldObjectName string, file io.Reader, fileSize int64, filename string) (string, string, error) {
-	if oldObjectName != "" {
-		err := s.deleteFile(ctx, s.audioBucket, oldObjectName)
-		if err != nil {
-			logger.Error(fmt.Sprintf("Failed to delete old audio '%s': %v", oldObjectName, err))
-		}
-	}
-	return s.UploadQuestionAudio(ctx, file, fileSize, filename)
-}
-
-// DeleteQuestionAudio deletes an audio file
-func (s *Storage) DeleteQuestionAudio(ctx context.Context, objectName string) error {
-	return s.deleteFile(ctx, s.audioBucket, objectName)
-}
-
-// UploadQuestionImage uploads a new image for a question
-func (s *Storage) UploadQuestionImage(ctx context.Context, questionID uuid.UUID, file io.Reader, fileSize int64, filename string) (string, string, error) {
-
-	objectName := generateObjectName(questionID.String(), filename)
-	contentType := getContentType(filename)
-
-	_, err := s.uploadFile(ctx, s.questionBucket, objectName, file, fileSize, contentType)
-	if err != nil {
-		return "", "", err
-	}
-	return objectName, s.buildObjectURL(s.questionBucket, objectName), nil
-}
-
-// ReplaceQuestionImage replaces an existing question image
-func (s *Storage) ReplaceQuestionImage(ctx context.Context, questionID uuid.UUID, oldObjectName string, file io.Reader, fileSize int64, filename string) (string, string, error) {
-	if oldObjectName != "" {
-		err := s.deleteFile(ctx, s.questionBucket, oldObjectName)
-		if err != nil {
-			logger.Error(fmt.Sprintf("Failed to delete old question image '%s': %v", oldObjectName, err))
-		}
-	}
-	return s.UploadQuestionImage(ctx, questionID, file, fileSize, filename)
-}
-
-// DeleteQuestionImage deletes a question image
-func (s *Storage) DeleteQuestionImage(ctx context.Context, objectName string) error {
-	return s.deleteFile(ctx, s.questionBucket, objectName)
-}
 func (s *Storage) getObject(ctx context.Context, bucket, objectName string) (*minio.Object, minio.ObjectInfo, error) {
 	object, err := s.client.GetObject(ctx, bucket, objectName, minio.GetObjectOptions{})
 	if err != nil {
@@ -259,10 +190,4 @@ func (s *Storage) getObject(ctx context.Context, bucket, objectName string) (*mi
 
 	logger.Info(fmt.Sprintf("Successfully retrieved object '%s' from bucket '%s'. Size: %d", objectName, bucket, objectInfo.Size))
 	return object, objectInfo, nil
-}
-func (s *Storage) GetQuestionImage(ctx context.Context, objectName string) (*minio.Object, minio.ObjectInfo, error) {
-	return s.getObject(ctx, s.questionBucket, objectName)
-}
-func (s *Storage) GetQuestionAudio(ctx context.Context, objectName string) (*minio.Object, minio.ObjectInfo, error) {
-	return s.getObject(ctx, s.audioBucket, objectName)
 }

@@ -77,16 +77,9 @@ func (s *AccountService) UpdateAvatar(ctx context.Context, file *multipart.FileH
 	if rateCount >= 10 { // Max 10 attempts per minute
 		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:UpdateAvatar: reached rate limit", nil)
 	}
-
 	// Increment and set rate limit
 	s.cache.Incr(ctx, rateKey)
 	s.cache.Expire(ctx, rateKey, time.Minute)
-
-	oldImage, err := s.repo.GetAvatar(ctx, claims.UserID)
-	if err != nil {
-		logger.Error("AccountService:UpdateAvatar:Failed to update avatar", "error", err)
-		return nil, errors.NewAppError(errors.ErrInternal, "AccountService:UpdateAvatar:Failed to update avatar", err)
-	}
 
 	src, err := file.Open()
 	if err != nil {
@@ -97,7 +90,7 @@ func (s *AccountService) UpdateAvatar(ctx context.Context, file *multipart.FileH
 	resizedBytes, err := utils.ResizeImage(src)
 	resizedReader := bytes.NewReader(resizedBytes)
 	resizedSize := int64(len(resizedBytes))
-	name, url, err := s.storage.ReplaceAvatar(ctx, claims.UserID, oldImage, resizedReader, resizedSize, file.Filename)
+	name, url, err := s.storage.UploadAvatar(ctx, claims.UserID, resizedReader, resizedSize, file.Filename)
 	if err != nil {
 		logger.Error("AccountService:UpdateAvatar:Failed to update avatar", "error", err)
 		return nil, errors.NewAppError(errors.ErrInternal, "AccountService:UpdateAvatar:Failed to update avatar", err)

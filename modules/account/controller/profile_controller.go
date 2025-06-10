@@ -29,7 +29,6 @@ func (controller *AccountController) CreateProfiles(c echo.Context) error {
 		return controller.BadRequest("Error create profile", err)
 	}
 	return controller.SuccessResponse(c, nil, "Create Profile successfully")
-
 }
 func (controller *AccountController) UpdateProfiles(c echo.Context) error {
 	ctx := c.Request().Context()
@@ -68,6 +67,10 @@ func (controller *AccountController) UpdateAvatar(c echo.Context) error {
 	file, errFile := c.FormFile("avatar")
 	if errFile != nil {
 		return controller.BadRequest(fmt.Sprintf("Error getting image file: %v", errFile))
+	}
+	contentType := file.Header.Get("Content-Type")
+	if !utils.IsImageContentType(contentType) {
+		return controller.BadRequest("Invalid file type. Only image files (JPEG, PNG) are allowed.")
 	}
 	ctx := c.Request().Context()
 	token, errToken := utils.GetTokenFromHeader(c)
