@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.21-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
 WORKDIR /app
 
@@ -27,15 +27,14 @@ RUN apk add --no-cache ca-certificates tzdata
 # Copy binary from builder
 COPY --from=builder /app/main .
 COPY --from=builder /app/config ./config
-
 # Create logs directory
 RUN mkdir -p logs && chmod 755 logs
 
 # Set environment variables
-ENV APP_ENV=prod
+ENV APP_ENV=dev
 
 # Expose port
 EXPOSE 8080
 
 # Run the application
-CMD ["./main", "-env", "prod"]
+CMD ["./main", "-env", "dev"]

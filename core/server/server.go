@@ -108,6 +108,7 @@ func initServer() (*Server, error) {
 
 	// Middleware
 	e.Use(middleware.LoggerMiddleware())
+	e.Use(middleware.CORSMiddleware())
 
 	// Initialize modules
 	account.Init(e, db, redisCache, minioStorage)

@@ -1,4 +1,23 @@
 services:
+  pirate-backend:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    container_name: pirate-backend
+    ports:
+      - "9100:9100"
+    volumes:
+      - ./logs:/app/logs
+      - .env.dev:/app/.env
+    networks:
+      - pirate_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis :
+        condition: service_healthy
+      minio :
+        condition: service_healthy
   postgres:
     image: postgres:15-alpine
     container_name: pirate_postgres
@@ -15,9 +34,10 @@ services:
       interval: 60s
       timeout: 5s
       retries: 5
-
+    networks:
+      - pirate_network
   redis:
-    image: redis:7-alpine
+    image: redis:7.0
     container_name: pirate_redis
     ports:
       - "6379:6379"
@@ -29,6 +49,8 @@ services:
       interval: 60s
       timeout: 5s
       retries: 5
+    networks:
+      - pirate_network
   minio:
     image: minio/minio:RELEASE.2025-04-22T22-12-26Z-cpuv1
     container_name: pirate_minio
@@ -39,8 +61,8 @@ services:
       MINIO_ROOT_USER: pirate
       MINIO_ROOT_PASSWORD: admin123456
     volumes:
-      #- ./volumes/minio:/data
-      - minio_data:/data
+      - ./volumes/minio:/data
+      #- minio_data:/data
     command: server /data --console-address ":9001"
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
@@ -48,7 +70,12 @@ services:
       timeout: 20s
       retries: 3
       start_period: 10s
+    networks:
+      - pirate_network
 volumes:
   postgres_data:
   redis_data:
   minio_data:
+networks:
+  pirate_network:
+    driver: bridge
