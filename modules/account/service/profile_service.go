@@ -10,7 +10,6 @@ import (
 	"pirate-lang-go/core/logger"
 	"pirate-lang-go/core/utils"
 	"pirate-lang-go/modules/account/dto"
-	"pirate-lang-go/modules/account/entity"
 	"pirate-lang-go/modules/account/mapper"
 	"time"
 )
@@ -49,21 +48,22 @@ func (s *AccountService) GetProfile(ctx context.Context, token string) (*dto.Pro
 		logger.Error("AccountService:CreateProfile:Failed to get token", "error", err)
 		return nil, errors.NewAppError(errors.ErrUnauthorized, "AccountService:CreateProfile:Failed to get user", err)
 	}
-	profile, err := s.repo.GetProfile(ctx, claims.UserID)
+	profile, user, err := s.repo.GetProfile(ctx, claims.UserID)
 	if err != nil {
 		logger.Error("AccountService:GetProfile:Failed to get profile", "error", err)
 		return nil, errors.NewAppError(errors.ErrNotFound, "AccountService:GetProfile:Failed to get profile", err)
 	}
-	response := mapper.ToProfileResponse(profile, s.storage.BuildAvatarURL(profile.AvatarUrl))
+	response := mapper.ToProfileResponse(profile, user, s.storage.BuildAvatarURL(profile.AvatarUrl))
 	return response, nil
 }
-func (s *AccountService) GetManagerProfile(ctx context.Context, userId uuid.UUID) (*entity.UserProfile, *errors.AppError) {
-	profile, err := s.repo.GetProfile(ctx, userId)
+func (s *AccountService) GetManagerProfile(ctx context.Context, userId uuid.UUID) (*dto.ProfileResponse, *errors.AppError) {
+	profile, user, err := s.repo.GetProfile(ctx, userId)
 	if err != nil {
 		logger.Error("AccountService:GetProfile:Failed to get profile", "error", err)
 		return nil, errors.NewAppError(errors.ErrNotFound, "AccountService:GetProfile:Failed to get profile", err)
 	}
-	return profile, nil
+	response := mapper.ToProfileResponse(profile, user, s.storage.BuildAvatarURL(profile.AvatarUrl))
+	return response, nil
 }
 
 func (s *AccountService) UpdateAvatar(ctx context.Context, file *multipart.FileHeader, token string) (*dto.UpdateUserAvatarResponse, *errors.AppError) {

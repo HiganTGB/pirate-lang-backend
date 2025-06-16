@@ -103,6 +103,9 @@ type UnlockUserRequest struct {
 	UnlockReason string `json:"unlock_reason"`
 }
 type ProfileResponse struct {
+	Id          uuid.UUID `json:"id"`
+	Email       string    `json:"email"`
+	Username    string    `json:"user_name"`
 	FullName    string    `json:"full_name"`
 	Birthday    time.Time `json:"birthday"`
 	Gender      string    `json:"gender"`

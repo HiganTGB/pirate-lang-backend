@@ -2,9 +2,12 @@ package controller
 
 import (
 	"github.com/labstack/echo/v4"
+	"net/http"
+	"pirate-lang-go/core/constants"
 	"pirate-lang-go/core/utils"
 	"pirate-lang-go/modules/account/dto"
 	"pirate-lang-go/modules/account/validation"
+	"time"
 )
 
 func (controller *AccountController) Register(c echo.Context) error {
@@ -42,9 +45,30 @@ func (controller *AccountController) Login(c echo.Context) error {
 	ctx := c.Request().Context()
 	resultLogin, err := controller.accountService.Login(ctx, requestData)
 	if err != nil {
-		return controller.InternalServerError("Internal server error", err)
+		return controller.BadRequest("Wrong password", err)
 	}
+	accessCookie := new(http.Cookie)
+	accessCookie.Name = "access_token"
+	accessCookie.Value = resultLogin.AccessToken
 
+	accessCookie.Expires = time.Now().Add(constants.AccessTokenExpiry)
+	accessCookie.HttpOnly = true
+	accessCookie.Secure = false
+	accessCookie.Path = "/"
+	accessCookie.SameSite = http.SameSiteLaxMode
+
+	c.SetCookie(accessCookie)
+
+	refreshCookie := new(http.Cookie)
+	refreshCookie.Name = "refresh_token"
+	refreshCookie.Value = resultLogin.RefreshToken
+	refreshCookie.Expires = time.Now().Add(constants.RefreshTokenExpiry)
+	refreshCookie.HttpOnly = true
+	refreshCookie.Secure = false
+	refreshCookie.Path = "/"
+	refreshCookie.SameSite = http.SameSiteLaxMode
+
+	c.SetCookie(refreshCookie)
 	return controller.SuccessResponse(c, resultLogin, "Login success")
 }
 func (controller *AccountController) ChangePassword(c echo.Context) error {
@@ -78,13 +102,32 @@ func (controller *AccountController) RefreshToken(ctx echo.Context) error {
 }
 func (controller *AccountController) Logout(c echo.Context) error {
 	ctx := c.Request().Context()
+	accessCookie := new(http.Cookie)
+	accessCookie.Name = "access_token"
+	accessCookie.Value = ""
+	accessCookie.Expires = time.Unix(0, 0)
+	accessCookie.HttpOnly = true
+	accessCookie.Secure = false
+	accessCookie.Path = "/"
+	accessCookie.SameSite = http.SameSiteLaxMode
 
+	c.SetCookie(accessCookie)
+
+	refreshCookie := new(http.Cookie)
+	refreshCookie.Name = "refresh_token"
+	refreshCookie.Value = ""
+	refreshCookie.Expires = time.Unix(0, 0)
+	refreshCookie.HttpOnly = true
+	refreshCookie.Secure = false
+	refreshCookie.Path = "/"
+	refreshCookie.SameSite = http.SameSiteLaxMode
+
+	c.SetCookie(refreshCookie)
 	// Get token from header
 	token, err := utils.GetTokenFromHeader(c)
 	if err != nil {
 		return controller.Unauthorized("Unauthorized", err)
 	}
-
 	// Call service to handle logout
 	errLogout := controller.accountService.Logout(ctx, token)
 	if errLogout != nil {

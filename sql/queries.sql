@@ -115,9 +115,9 @@ FROM  user_profiles
 where user_id =$1;
 -- name: GetUserProfile :one
 SELECT
-    user_id,full_name,birthday,gender,phone_number,address,avatar_url,bio
+    user_id,u.email,u.user_name,full_name,birthday,gender,phone_number,address,avatar_url,bio
 FROM
-    user_profiles
+    user_profiles p join users u on p.user_id = u.id
 WHERE
     user_id = $1;
 

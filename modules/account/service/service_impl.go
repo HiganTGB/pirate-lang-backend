@@ -8,7 +8,6 @@ import (
 	"pirate-lang-go/core/errors"
 	"pirate-lang-go/core/storage"
 	"pirate-lang-go/modules/account/dto"
-	"pirate-lang-go/modules/account/entity"
 	"pirate-lang-go/modules/account/repository"
 )
 
@@ -37,7 +36,7 @@ type IAccountService interface {
 
 	// Admin API
 	GetUsers(ctx context.Context, pageNumber, pageSize int) (*dto.PaginatedUsersResponse, *errors.AppError)
-	GetManagerProfile(ctx context.Context, userId uuid.UUID) (*entity.UserProfile, *errors.AppError)
+	GetManagerProfile(ctx context.Context, userId uuid.UUID) (*dto.ProfileResponse, *errors.AppError)
 	LockUser(ctx context.Context, requestData *dto.LockUserRequest, userId uuid.UUID) *errors.AppError
 	UnlockUser(ctx context.Context, requestData *dto.UnlockUserRequest, userId uuid.UUID) *errors.AppError
 	// UserProfile

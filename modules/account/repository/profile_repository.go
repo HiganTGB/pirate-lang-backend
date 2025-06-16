@@ -48,11 +48,11 @@ func (r *AccountRepository) CreateProfile(ctx context.Context, profile *entity.U
 	}
 	return err
 }
-func (r *AccountRepository) GetProfile(ctx context.Context, userId uuid.UUID) (*entity.UserProfile, error) {
+func (r *AccountRepository) GetProfile(ctx context.Context, userId uuid.UUID) (*entity.UserProfile, *entity.User, error) {
 	dbProfile, err := r.Queries.GetUserProfile(ctx, userId)
 	if err != nil {
 		logger.Error("AccountRepository:GetProfile:Error when get userProfile", "error", err)
-		return nil, err
+		return nil, nil, err
 	}
 	var birthdayPtr *time.Time
 	if dbProfile.Birthday.Valid {
@@ -69,7 +69,11 @@ func (r *AccountRepository) GetProfile(ctx context.Context, userId uuid.UUID) (*
 		AvatarUrl:   dbProfile.AvatarUrl.String,
 		Bio:         dbProfile.Bio.String,
 	}
-	return profile, err
+	user := &entity.User{
+		Email:    dbProfile.Email,
+		UserName: dbProfile.UserName,
+	}
+	return profile, user, err
 
 }
 func (r *AccountRepository) UpdateProfile(ctx context.Context, profile *entity.UserProfile) error {

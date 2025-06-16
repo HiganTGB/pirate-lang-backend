@@ -28,7 +28,7 @@ type IAccountRepository interface {
 	// Profile
 	CreateProfile(ctx context.Context, profile *entity.UserProfile) error
 	UpdateProfile(ctx context.Context, profile *entity.UserProfile) error
-	GetProfile(ctx context.Context, userId uuid.UUID) (*entity.UserProfile, error)
+	GetProfile(ctx context.Context, userId uuid.UUID) (*entity.UserProfile, *entity.User, error)
 	UpdateAvatar(ctx context.Context, updateAvatarUrl string, userID uuid.UUID) error
 	GetAvatar(ctx context.Context, userID uuid.UUID) (string, error)
 	// Rbac

@@ -128,7 +128,7 @@ func ToUpdateProfileEntity(profile *dto.UpdateUserProfile, userId *uuid.UUID) *e
 		Bio:         profile.Bio,
 	}
 }
-func ToProfileResponse(profile *entity.UserProfile, url string) *dto.ProfileResponse {
+func ToProfileResponse(profile *entity.UserProfile, user *entity.User, url string) *dto.ProfileResponse {
 	if profile == nil {
 		return nil
 	}
@@ -136,7 +136,8 @@ func ToProfileResponse(profile *entity.UserProfile, url string) *dto.ProfileResp
 	if profile.Birthday != nil {
 		birthday = *profile.Birthday
 	}
-	return &dto.ProfileResponse{
+	response := dto.ProfileResponse{
+		Id:          profile.UserId,
 		FullName:    profile.FullName,
 		Birthday:    birthday,
 		Gender:      profile.Gender,
@@ -145,4 +146,9 @@ func ToProfileResponse(profile *entity.UserProfile, url string) *dto.ProfileResp
 		Address:     profile.Address,
 		Bio:         profile.Bio,
 	}
+	if user != nil {
+		response.Email = user.Email
+		response.Username = user.UserName
+	}
+	return &response
 }
