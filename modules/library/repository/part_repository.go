@@ -30,7 +30,8 @@ func (r *LibraryRepository) CreatePart(ctx context.Context, part *entity.Part) e
 		Sequence:    Sequence,
 	})
 	if err != nil {
-		logger.Error("PartRepository:CreatePart:", "error", err)
+		logger.Error("LibraryRepository.CreatePart: failed to create part",
+			"error", err)
 		return err
 	}
 	return err
@@ -57,7 +58,9 @@ func (r *LibraryRepository) UpdatePart(ctx context.Context, part *entity.Part, p
 		PartID:      partId,
 	})
 	if err != nil {
-		logger.Error("PartRepository:CreatePart:", "error", err)
+		logger.Error("LibraryRepository.UpdatePart: failed to update part",
+			"part_id", partId,
+			"error", err)
 		return err
 	}
 	return err
@@ -65,7 +68,9 @@ func (r *LibraryRepository) UpdatePart(ctx context.Context, part *entity.Part, p
 func (r *LibraryRepository) GetPart(ctx context.Context, partId uuid.UUID) (*entity.Part, error) {
 	dbPart, err := r.Queries.GetPart(ctx, partId)
 	if err != nil {
-		logger.Error("PartRepository:GetParts:", "error", err)
+		logger.Error("LibraryRepository.GetPart: failed to retrieve part",
+			"part_id", partId,
+			"error", err)
 		return nil, err
 	}
 	return &entity.Part{
@@ -82,7 +87,10 @@ func (r *LibraryRepository) GetParts(ctx context.Context, pageNumber, pageSize i
 	// Get total count
 	totalItems, err := r.Queries.GetPartsCount(ctx)
 	if err != nil {
-		logger.Error("PartRepository:GetParts:Error when count parts", "error", err)
+		logger.Error("LibraryRepository.GetParts: failed to get total count of parts",
+			"page_number", pageNumber,
+			"page_size", pageSize,
+			"error", err)
 		return nil, err
 	}
 
@@ -95,7 +103,11 @@ func (r *LibraryRepository) GetParts(ctx context.Context, pageNumber, pageSize i
 
 	dbParts, err := r.Queries.GetPaginatedParts(ctx, listParams)
 	if err != nil {
-		logger.Error("PartRepository:GetParts:Error when get parts", "error", err)
+		logger.Error("LibraryRepository.GetParts: failed to retrieve paginated parts",
+			"page_number", pageNumber,
+			"page_size", pageSize,
+			"offset", offset,
+			"error", err)
 		return nil, err
 	}
 	var parts []*entity.Part

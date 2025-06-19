@@ -19,7 +19,7 @@ func (s *LibraryService) GetParts(ctx context.Context, pageNumber, pageSize int)
 	resultGetParts, err := s.repo.GetParts(ctx, pageNumber, pageSize)
 	if err != nil {
 		logger.Error("LibraryService:GetParts:Failed to get parts", "error", err)
-		return nil, errors.NewAppError(errors.ErrAlreadyExists, "AccountService:CreateAccount:username or email already exists", err)
+		return nil, errors.NewAppError(errors.ErrInternal, "LibraryService:GetParts:Failed to get parts", err)
 	}
 	// Convert to DTO
 	partDTOs := mapper.ToPaginatedPartsResponse(resultGetParts)
