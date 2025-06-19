@@ -12,6 +12,30 @@ import (
 	"pirate-lang-go/core/logger"
 )
 
+func IsImageContentType(contentType string) bool {
+	switch contentType {
+	case "image/jpeg", "image/png", "image/gif":
+		return true
+	default:
+		return false
+	}
+}
+func IsTextPlainContentType(contentType string) bool {
+	switch contentType {
+	case "text/plain":
+		return true
+	default:
+		return false
+	}
+}
+func IsAudioMpegContentType(contentType string) bool {
+	switch contentType {
+	case "audio/mpeg":
+		return true
+	default:
+		return false
+	}
+}
 func ResizeImage(file io.Reader) ([]byte, error) {
 
 	// Đọc và giải mã ảnh

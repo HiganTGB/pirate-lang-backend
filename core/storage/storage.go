@@ -112,11 +112,10 @@ func generateObjectName(prefix string, originalFilename string) string {
 }
 func buildObjectName(folder string, originalFilename string, name string) string {
 	ext := filepath.Ext(originalFilename)
-	uniqueID := uuid.New().String()
 	if folder != "" {
 		return fmt.Sprintf("%s/%s%s", folder, name, ext)
 	}
-	return fmt.Sprintf("%s%s", uniqueID, ext)
+	return fmt.Sprintf("%s%s", name, ext)
 }
 
 // buildObjectURL constructs a public URL for an object
@@ -131,6 +130,9 @@ func (s *Storage) buildObjectURL(bucket, objectName string) string {
 // BuildAvatarURL constructs a public URL for an object
 func (s *Storage) BuildAvatarURL(objectName string) string {
 	return s.buildObjectURL(ImageBucket, objectName)
+}
+func (s *Storage) BuildAudioURL(objectName string) string {
+	return s.buildObjectURL(AudioBucket, objectName)
 }
 
 // uploadFile uploads a file to a specific bucket with a given object name
@@ -168,6 +170,36 @@ func (s *Storage) UploadAvatar(ctx context.Context, userID uuid.UUID, file io.Re
 	return objectName, s.buildObjectURL(s.imageBucket, objectName), nil
 }
 
+func (s *Storage) UploadAudio(ctx context.Context, id uuid.UUID, file io.Reader, fileSize int64, filename string, folder string) (string, string, error) {
+
+	objectName := buildObjectName(folder, filename, id.String())
+	contentType := getContentType(filename)
+	_, err := s.uploadFile(ctx, s.audioBucket, objectName, file, fileSize, contentType)
+	if err != nil {
+		return "", "", err
+	}
+	return objectName, s.buildObjectURL(s.audioBucket, objectName), nil
+}
+func (s *Storage) UploadTranscriptAudio(ctx context.Context, id uuid.UUID, file io.Reader, fileSize int64, filename string, folder string, lang string) (string, string, error) {
+
+	objectName := buildObjectName(folder, filename, fmt.Sprintf("%s_%s", id, lang))
+	contentType := getContentType(filename)
+	_, err := s.uploadFile(ctx, s.audioBucket, objectName, file, fileSize, contentType)
+	if err != nil {
+		return "", "", err
+	}
+	return objectName, s.buildObjectURL(s.audioBucket, objectName), nil
+}
+func (s *Storage) UploadImage(ctx context.Context, id uuid.UUID, file io.Reader, fileSize int64, filename string, folder string) (string, string, error) {
+
+	objectName := buildObjectName(folder, filename, id.String())
+	contentType := getContentType(filename)
+	_, err := s.uploadFile(ctx, s.imageBucket, objectName, file, fileSize, contentType)
+	if err != nil {
+		return "", "", err
+	}
+	return objectName, s.buildObjectURL(s.imageBucket, objectName), nil
+}
 func (s *Storage) getObject(ctx context.Context, bucket, objectName string) (*minio.Object, minio.ObjectInfo, error) {
 	object, err := s.client.GetObject(ctx, bucket, objectName, minio.GetObjectOptions{})
 	if err != nil {

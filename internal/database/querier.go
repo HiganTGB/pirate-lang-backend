@@ -34,7 +34,10 @@ type Querier interface {
 	DeletePermission(ctx context.Context, id uuid.UUID) error
 	// DeleteRole deletes a role by its ID.
 	DeleteRole(ctx context.Context, id uuid.UUID) error
+	GetAudioUrlGroup(ctx context.Context, questionGroupID uuid.UUID) (sql.NullString, error)
+	GetImageUrlGroup(ctx context.Context, questionGroupID uuid.UUID) (sql.NullString, error)
 	GetPaginatedParts(ctx context.Context, arg GetPaginatedPartsParams) ([]Part, error)
+	GetPaginatedQuestionGroups(ctx context.Context, arg GetPaginatedQuestionGroupsParams) ([]GetPaginatedQuestionGroupsRow, error)
 	// GetPaginatedUsers retrieves a list of users with pagination.
 	GetPaginatedUsers(ctx context.Context, arg GetPaginatedUsersParams) ([]GetPaginatedUsersRow, error)
 	GetPart(ctx context.Context, partID uuid.UUID) (Part, error)
@@ -55,6 +58,7 @@ type Querier interface {
 	LockUser(ctx context.Context, arg LockUserParams) (sql.Result, error)
 	// PermissionExists checks if a permission with the given ID exists.
 	PermissionExists(ctx context.Context, id uuid.UUID) (bool, error)
+	QuestionGroupExists(ctx context.Context, questionGroupID uuid.UUID) (bool, error)
 	// RoleExists checks if a role with the given ID exists.
 	RoleExists(ctx context.Context, id uuid.UUID) (bool, error)
 	// UnlockUser to unlock user account
@@ -65,7 +69,6 @@ type Querier interface {
 	// UpdatePassword updates the password for a given user ID.
 	UpdatePassword(ctx context.Context, arg UpdatePasswordParams) (sql.Result, error)
 	UpdateQuestionGroup(ctx context.Context, arg UpdateQuestionGroupParams) error
-	UpdateTextContentQuestionGroup(ctx context.Context, arg UpdateTextContentQuestionGroupParams) error
 	UpdateUserAvatar(ctx context.Context, arg UpdateUserAvatarParams) error
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) error
 }

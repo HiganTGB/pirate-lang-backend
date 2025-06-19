@@ -207,10 +207,36 @@ func (q *Queries) DeleteRole(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
+const getAudioUrlGroup = `-- name: GetAudioUrlGroup :one
+SELECT  context_audio_url
+FROM question_groups
+WHERE question_group_id=$1
+`
+
+func (q *Queries) GetAudioUrlGroup(ctx context.Context, questionGroupID uuid.UUID) (sql.NullString, error) {
+	row := q.db.QueryRowContext(ctx, getAudioUrlGroup, questionGroupID)
+	var context_audio_url sql.NullString
+	err := row.Scan(&context_audio_url)
+	return context_audio_url, err
+}
+
+const getImageUrlGroup = `-- name: GetImageUrlGroup :one
+SELECT  context_image_url
+FROM question_groups
+WHERE question_group_id=$1
+`
+
+func (q *Queries) GetImageUrlGroup(ctx context.Context, questionGroupID uuid.UUID) (sql.NullString, error) {
+	row := q.db.QueryRowContext(ctx, getImageUrlGroup, questionGroupID)
+	var context_image_url sql.NullString
+	err := row.Scan(&context_image_url)
+	return context_image_url, err
+}
+
 const getPaginatedParts = `-- name: GetPaginatedParts :many
 SELECT part_id, skill, name, description, sequence, created_at, updated_at
 FROM parts
-ORDER BY created_at DESC
+ORDER BY created_at ASC 
 LIMIT $1 OFFSET $2
 `
 
@@ -236,6 +262,57 @@ func (q *Queries) GetPaginatedParts(ctx context.Context, arg GetPaginatedPartsPa
 			&i.Sequence,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPaginatedQuestionGroups = `-- name: GetPaginatedQuestionGroups :many
+SELECT question_group_id,name, description, part_id,plan_type, group_type
+FROM question_groups
+ORDER BY created_at DESC
+LIMIT $1 OFFSET $2
+`
+
+type GetPaginatedQuestionGroupsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+type GetPaginatedQuestionGroupsRow struct {
+	QuestionGroupID uuid.UUID      `json:"question_group_id"`
+	Name            string         `json:"name"`
+	Description     sql.NullString `json:"description"`
+	PartID          uuid.UUID      `json:"part_id"`
+	PlanType        string         `json:"plan_type"`
+	GroupType       string         `json:"group_type"`
+}
+
+func (q *Queries) GetPaginatedQuestionGroups(ctx context.Context, arg GetPaginatedQuestionGroupsParams) ([]GetPaginatedQuestionGroupsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPaginatedQuestionGroups, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []GetPaginatedQuestionGroupsRow{}
+	for rows.Next() {
+		var i GetPaginatedQuestionGroupsRow
+		if err := rows.Scan(
+			&i.QuestionGroupID,
+			&i.Name,
+			&i.Description,
+			&i.PartID,
+			&i.PlanType,
+			&i.GroupType,
 		); err != nil {
 			return nil, err
 		}
@@ -457,15 +534,17 @@ func (q *Queries) GetUserByEmailOrUserNameOrId(ctx context.Context, arg GetUserB
 
 const getUserProfile = `-- name: GetUserProfile :one
 SELECT
-    user_id,full_name,birthday,gender,phone_number,address,avatar_url,bio
+    user_id,u.email,u.user_name,full_name,birthday,gender,phone_number,address,avatar_url,bio
 FROM
-    user_profiles
+    user_profiles p join users u on p.user_id = u.id
 WHERE
     user_id = $1
 `
 
 type GetUserProfileRow struct {
 	UserID      uuid.UUID      `json:"user_id"`
+	Email       string         `json:"email"`
+	UserName    string         `json:"user_name"`
 	FullName    sql.NullString `json:"full_name"`
 	Birthday    sql.NullTime   `json:"birthday"`
 	Gender      sql.NullString `json:"gender"`
@@ -480,6 +559,8 @@ func (q *Queries) GetUserProfile(ctx context.Context, userID uuid.UUID) (GetUser
 	var i GetUserProfileRow
 	err := row.Scan(
 		&i.UserID,
+		&i.Email,
+		&i.UserName,
 		&i.FullName,
 		&i.Birthday,
 		&i.Gender,
@@ -548,6 +629,17 @@ SELECT EXISTS(SELECT 1 FROM permissions WHERE id = $1)
 // PermissionExists checks if a permission with the given ID exists.
 func (q *Queries) PermissionExists(ctx context.Context, id uuid.UUID) (bool, error) {
 	row := q.db.QueryRowContext(ctx, permissionExists, id)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
+const questionGroupExists = `-- name: QuestionGroupExists :one
+SELECT EXISTS(SELECT 1 FROM question_groups WHERE question_group_id = $1)
+`
+
+func (q *Queries) QuestionGroupExists(ctx context.Context, questionGroupID uuid.UUID) (bool, error) {
+	row := q.db.QueryRowContext(ctx, questionGroupExists, questionGroupID)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
@@ -656,17 +748,18 @@ func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) 
 
 const updateQuestionGroup = `-- name: UpdateQuestionGroup :exec
 UPDATE question_groups
-SET name=$1,description=$2,part_id=$3,plan_type=$4,group_type=$5
-WHERE question_group_id=$6
+SET name=$1,description=$2,part_id=$3,plan_type=$4,group_type=$5,context_text_content=$6
+WHERE question_group_id=$7
 `
 
 type UpdateQuestionGroupParams struct {
-	Name            string         `json:"name"`
-	Description     sql.NullString `json:"description"`
-	PartID          uuid.UUID      `json:"part_id"`
-	PlanType        string         `json:"plan_type"`
-	GroupType       string         `json:"group_type"`
-	QuestionGroupID uuid.UUID      `json:"question_group_id"`
+	Name               string         `json:"name"`
+	Description        sql.NullString `json:"description"`
+	PartID             uuid.UUID      `json:"part_id"`
+	PlanType           string         `json:"plan_type"`
+	GroupType          string         `json:"group_type"`
+	ContextTextContent sql.NullString `json:"context_text_content"`
+	QuestionGroupID    uuid.UUID      `json:"question_group_id"`
 }
 
 func (q *Queries) UpdateQuestionGroup(ctx context.Context, arg UpdateQuestionGroupParams) error {
@@ -676,24 +769,9 @@ func (q *Queries) UpdateQuestionGroup(ctx context.Context, arg UpdateQuestionGro
 		arg.PartID,
 		arg.PlanType,
 		arg.GroupType,
+		arg.ContextTextContent,
 		arg.QuestionGroupID,
 	)
-	return err
-}
-
-const updateTextContentQuestionGroup = `-- name: UpdateTextContentQuestionGroup :exec
-UPDATE question_groups
-SET context_text_content=$1
-WHERE question_group_id=$2
-`
-
-type UpdateTextContentQuestionGroupParams struct {
-	ContextTextContent sql.NullString `json:"context_text_content"`
-	QuestionGroupID    uuid.UUID      `json:"question_group_id"`
-}
-
-func (q *Queries) UpdateTextContentQuestionGroup(ctx context.Context, arg UpdateTextContentQuestionGroupParams) error {
-	_, err := q.db.ExecContext(ctx, updateTextContentQuestionGroup, arg.ContextTextContent, arg.QuestionGroupID)
 	return err
 }
 

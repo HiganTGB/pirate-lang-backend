@@ -138,7 +138,7 @@ SELECT COUNT(*) FROM parts;
 -- name: GetPaginatedParts :many
 SELECT part_id, skill, name, description, sequence, created_at, updated_at
 FROM parts
-ORDER BY created_at DESC
+ORDER BY created_at ASC 
 LIMIT $1 OFFSET $2;
 
 -- name: GetPart :one
@@ -154,12 +154,10 @@ VALUES($1,$2,$3,$4,$5)
 RETURNING question_group_id;
 -- name: UpdateQuestionGroup :exec
 UPDATE question_groups
-SET name=$1,description=$2,part_id=$3,plan_type=$4,group_type=$5
-WHERE question_group_id=$6;
--- name: UpdateTextContentQuestionGroup :exec
-UPDATE question_groups
-SET context_text_content=$1
-WHERE question_group_id=$2;
+SET name=$1,description=$2,part_id=$3,plan_type=$4,group_type=$5,context_text_content=$6
+WHERE question_group_id=$7;
+-- name: QuestionGroupExists :one
+SELECT EXISTS(SELECT 1 FROM question_groups WHERE question_group_id = $1);
 -- name: UpdateAudioContentQuestionGroup :exec
 UPDATE question_groups
 SET context_audio_url=$1
@@ -168,3 +166,17 @@ WHERE question_group_id=$2;
 UPDATE question_groups
 SET context_image_url=$1
 WHERE question_group_id=$2;
+-- name: GetAudioUrlGroup :one
+SELECT  context_audio_url
+FROM question_groups
+WHERE question_group_id=$1;
+-- name: GetImageUrlGroup :one
+SELECT  context_image_url
+FROM question_groups
+WHERE question_group_id=$1;
+
+-- name: GetPaginatedQuestionGroups :many
+SELECT question_group_id,name, description, part_id,plan_type, group_type
+FROM question_groups
+ORDER BY created_at DESC
+LIMIT $1 OFFSET $2;
