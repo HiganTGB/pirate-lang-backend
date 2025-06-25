@@ -84,6 +84,29 @@ func (s *LibraryService) UploadTranscriptAudioGroup(ctx context.Context, file *m
 	}
 	return response, nil
 }
+func (s *LibraryService) UploadImageGroup(ctx context.Context, file *multipart.FileHeader, groupId uuid.UUID) (*dto.UpdateContentFileResponse, *errors.AppError) {
+	src, err := file.Open()
+	if err != nil {
+		logger.Error("LibraryService:UploadAudioGroup:Failed to open uploaded audio file", "error", err, "groupId", groupId.String())
+		return nil, errors.NewAppError(errors.ErrInvalidInput, "Service:UploadAudioGroup:Failed to read audio file", err)
+	}
+	defer src.Close()
+	objectName, objectURL, err := s.storage.UploadImage(ctx, groupId, src, file.Size, file.Filename, ImageGroupFolder)
+	if err != nil {
+		logger.Error("LibraryService:UploadAudioGroup:Failed to open uploaded audio file", "error", err, "groupId", groupId.String())
+		return nil, errors.NewAppError(errors.ErrInvalidInput, "Service:UploadAudioGroup:Failed to upload audio file", err)
+	}
+	err = s.repo.UpdateAudioGroup(ctx, &objectName, groupId)
+	if err != nil {
+		logger.Error("LibraryService:UploadAudioGroup:Failed to update audio URL in database", "error", err, "groupId", groupId.String())
+		return nil, errors.NewAppError(errors.ErrInternal, "Service:UploadAudioGroup:Failed to persist audio information in database", err)
+	}
+	response := &dto.UpdateContentFileResponse{
+		Filename:  objectName,
+		ObjectURL: objectURL,
+	}
+	return response, nil
+}
 func (s *LibraryService) DeleteAudioGroup(ctx context.Context, groupId uuid.UUID) *errors.AppError {
 	objectName := ""
 	err := s.repo.UpdateAudioGroup(ctx, &objectName, groupId)

@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 	"pirate-lang-go/core/logger"
 	"pirate-lang-go/internal/database"
-
 	"pirate-lang-go/modules/library/entity"
 )
 
@@ -34,7 +33,6 @@ func (r *LibraryRepository) CreateGroupGroup(ctx context.Context, group *entity.
 	}
 	groupId, err := r.Queries.CreateQuestionGroup(ctx, params)
 	if err != nil {
-		// New log: Specify method, action, and include relevant IDs if available
 		logger.Error("LibraryRepository.CreateGroupGroup: failed to create question group",
 			"group_name", Name,
 			"part_id", PartId,
@@ -56,10 +54,9 @@ func (r *LibraryRepository) UpdateAudioGroup(ctx context.Context, audioUrl *stri
 		QuestionGroupID: groupId,
 	})
 	if err != nil {
-		// New log: Specify method, action, and include the group ID
 		logger.Error("LibraryRepository.UpdateAudioGroup: failed to update audio content for group",
 			"group_id", groupId,
-			"audio_url_attempted", audioUrl, // Useful for debugging what was being set
+			"audio_url_attempted", audioUrl,
 			"error", err)
 		return err
 	}
@@ -78,10 +75,9 @@ func (r *LibraryRepository) UpdateImageGroup(ctx context.Context, imageUrl *stri
 		QuestionGroupID: groupId,
 	})
 	if err != nil {
-		// New log: Specify method, action, and include the group ID
 		logger.Error("LibraryRepository.UpdateImageGroup: failed to update image content for group",
 			"group_id", groupId,
-			"image_url_attempted", imageUrl, // Useful for debugging what was being set
+			"image_url_attempted", imageUrl,
 			"error", err)
 		return err
 	}
@@ -91,7 +87,6 @@ func (r *LibraryRepository) UpdateImageGroup(ctx context.Context, imageUrl *stri
 func (r *LibraryRepository) GetAudioGroup(ctx context.Context, groupId uuid.UUID) (string, error) {
 	objectName, err := r.Queries.GetAudioUrlGroup(ctx, groupId)
 	if err != nil {
-		// New log: Specify method, action, and include the group ID
 		logger.Error("LibraryRepository.GetAudioGroup: failed to retrieve audio URL for group",
 			"group_id", groupId,
 			"error", err)
@@ -103,8 +98,6 @@ func (r *LibraryRepository) GetAudioGroup(ctx context.Context, groupId uuid.UUID
 func (r *LibraryRepository) GroupExists(ctx context.Context, groupId uuid.UUID) (bool, error) {
 	exists, err := r.Queries.QuestionGroupExists(ctx, groupId)
 	if err != nil {
-		// New log: Specify method, action, and include the group ID
-		// Original log had "PartRepository:GetAudioGroup" which was incorrect, fixed to GroupExists.
 		logger.Error("LibraryRepository.GroupExists: failed to check existence of group",
 			"group_id", groupId,
 			"error", err)
@@ -143,8 +136,6 @@ func (r *LibraryRepository) UpdateQuestionGroup(ctx context.Context, group *enti
 	}
 	err := r.Queries.UpdateQuestionGroup(ctx, params)
 	if err != nil {
-		// New log: Specify method, action, and include relevant IDs
-		// Original log had "PartRepository:CreateQuestionGroup" which was incorrect, fixed to UpdateQuestionGroup.
 		logger.Error("LibraryRepository.UpdateQuestionGroup: failed to update question group details",
 			"group_id", groupId,
 			"group_name_attempted", Name,
@@ -158,7 +149,6 @@ func (r *LibraryRepository) GetQuestionGroups(ctx context.Context, pageNumber, p
 	// Get total count
 	totalItems, err := r.Queries.GetPartsCount(ctx)
 	if err != nil {
-		// New log: Specify method, action, and pagination parameters
 		logger.Error("LibraryRepository.GetQuestionGroups: failed to get total count of groups",
 			"page_number", pageNumber,
 			"page_size", pageSize,
@@ -175,7 +165,6 @@ func (r *LibraryRepository) GetQuestionGroups(ctx context.Context, pageNumber, p
 
 	dbParts, err := r.Queries.GetPaginatedQuestionGroups(ctx, listParams)
 	if err != nil {
-		// New log: Specify method, action, and pagination parameters
 		logger.Error("LibraryRepository.GetQuestionGroups: failed to retrieve paginated question groups",
 			"page_number", pageNumber,
 			"page_size", pageSize,
