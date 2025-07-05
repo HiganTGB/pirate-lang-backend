@@ -21,29 +21,46 @@ type Querier interface {
 	// ========================
 	// 002
 	// ========================
-	CreatePart(ctx context.Context, arg CreatePartParams) error
+	CreateExam(ctx context.Context, arg CreateExamParams) (uuid.UUID, error)
+	CreateExamPart(ctx context.Context, arg CreateExamPartParams) (uuid.UUID, error)
+	//-
+	// Paragraphs Queries
+	//-
+	CreateParagraph(ctx context.Context, arg CreateParagraphParams) (uuid.UUID, error)
 	// CreatePermission creates a new permission.
 	CreatePermission(ctx context.Context, arg CreatePermissionParams) error
-	CreateQuestionGroup(ctx context.Context, arg CreateQuestionGroupParams) (uuid.UUID, error)
+	//-
+	// Questions Queries
+	//-
+	CreateQuestion(ctx context.Context, arg CreateQuestionParams) (uuid.UUID, error)
 	// CreateRole creates a new role.
 	CreateRole(ctx context.Context, arg CreateRoleParams) error
 	// 00002
 	// CreateUserProfile creates a new Userprofile.
 	CreateUserProfile(ctx context.Context, arg CreateUserProfileParams) error
+	DeleteExam(ctx context.Context, examID uuid.UUID) error
+	DeleteExamPart(ctx context.Context, partID uuid.UUID) error
+	DeleteParagraph(ctx context.Context, paragraphID uuid.UUID) error
 	// DeletePermission deletes a permission by its ID.
 	DeletePermission(ctx context.Context, id uuid.UUID) error
+	DeleteQuestion(ctx context.Context, questionID uuid.UUID) error
 	// DeleteRole deletes a role by its ID.
 	DeleteRole(ctx context.Context, id uuid.UUID) error
-	GetAudioUrlGroup(ctx context.Context, questionGroupID uuid.UUID) (sql.NullString, error)
-	GetImageUrlGroup(ctx context.Context, questionGroupID uuid.UUID) (sql.NullString, error)
-	GetPaginatedParts(ctx context.Context, arg GetPaginatedPartsParams) ([]Part, error)
-	GetPaginatedQuestionGroups(ctx context.Context, arg GetPaginatedQuestionGroupsParams) ([]GetPaginatedQuestionGroupsRow, error)
+	GetExam(ctx context.Context, examID uuid.UUID) (Exam, error)
+	GetExamPartByID(ctx context.Context, partID uuid.UUID) (ExamPart, error)
+	GetExamPartsByExamId(ctx context.Context, examID uuid.NullUUID) ([]ExamPart, error)
+	GetExamsCount(ctx context.Context) (int64, error)
+	GetPaginatedExams(ctx context.Context, arg GetPaginatedExamsParams) ([]Exam, error)
+	GetPaginatedPracticeExamParts(ctx context.Context, arg GetPaginatedPracticeExamPartsParams) ([]ExamPart, error)
 	// GetPaginatedUsers retrieves a list of users with pagination.
 	GetPaginatedUsers(ctx context.Context, arg GetPaginatedUsersParams) ([]GetPaginatedUsersRow, error)
-	GetPart(ctx context.Context, partID uuid.UUID) (Part, error)
-	GetPartsCount(ctx context.Context) (int64, error)
+	GetParagraphByID(ctx context.Context, paragraphID uuid.UUID) (Paragraph, error)
+	GetParagraphByPartId(ctx context.Context, partID uuid.UUID) ([]Paragraph, error)
 	// GetPermissions retrieves all permissions.
 	GetPermissions(ctx context.Context) ([]Permission, error)
+	GetPracticeExamPartCount(ctx context.Context) (int64, error)
+	GetQuestionByID(ctx context.Context, questionID uuid.UUID) (Question, error)
+	GetRole(ctx context.Context) (GetRoleRow, error)
 	// GetRoles retrieves all roles.
 	GetRoles(ctx context.Context) ([]Role, error)
 	GetUserAvatar(ctx context.Context, userID uuid.UUID) (sql.NullString, error)
@@ -54,21 +71,28 @@ type Querier interface {
 	GetUsersCount(ctx context.Context) (int64, error)
 	// HasPermission checks if a user has a specific permission.
 	HasPermission(ctx context.Context, arg HasPermissionParams) (bool, error)
+	ListParagraphs(ctx context.Context) ([]Paragraph, error)
+	ListParagraphsByPartID(ctx context.Context, partID uuid.UUID) ([]Paragraph, error)
+	ListQuestions(ctx context.Context) ([]Question, error)
+	ListQuestionsByPartID(ctx context.Context, partID uuid.UUID) ([]Question, error)
 	// LockUser to lock user account
 	LockUser(ctx context.Context, arg LockUserParams) (sql.Result, error)
 	// PermissionExists checks if a permission with the given ID exists.
 	PermissionExists(ctx context.Context, id uuid.UUID) (bool, error)
-	QuestionGroupExists(ctx context.Context, questionGroupID uuid.UUID) (bool, error)
 	// RoleExists checks if a role with the given ID exists.
 	RoleExists(ctx context.Context, id uuid.UUID) (bool, error)
 	// UnlockUser to unlock user account
 	UnlockUser(ctx context.Context, arg UnlockUserParams) (sql.Result, error)
-	UpdateAudioContentQuestionGroup(ctx context.Context, arg UpdateAudioContentQuestionGroupParams) error
-	UpdateImageContentQuestionGroup(ctx context.Context, arg UpdateImageContentQuestionGroupParams) error
-	UpdatePart(ctx context.Context, arg UpdatePartParams) error
+	UpdateExam(ctx context.Context, arg UpdateExamParams) error
+	UpdateExamPart(ctx context.Context, arg UpdateExamPartParams) error
+	UpdateParagraph(ctx context.Context, arg UpdateParagraphParams) error
+	UpdateParagraphAudioURL(ctx context.Context, arg UpdateParagraphAudioURLParams) error
+	UpdateParagraphImageURL(ctx context.Context, arg UpdateParagraphImageURLParams) error
 	// UpdatePassword updates the password for a given user ID.
 	UpdatePassword(ctx context.Context, arg UpdatePasswordParams) (sql.Result, error)
-	UpdateQuestionGroup(ctx context.Context, arg UpdateQuestionGroupParams) error
+	UpdateQuestion(ctx context.Context, arg UpdateQuestionParams) error
+	UpdateQuestionAudioURL(ctx context.Context, arg UpdateQuestionAudioURLParams) error
+	UpdateQuestionImageURL(ctx context.Context, arg UpdateQuestionImageURLParams) error
 	UpdateUserAvatar(ctx context.Context, arg UpdateUserAvatarParams) error
 	UpdateUserProfile(ctx context.Context, arg UpdateUserProfileParams) error
 }

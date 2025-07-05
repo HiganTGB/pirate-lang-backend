@@ -10,6 +10,7 @@ import (
 	"database/sql"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 )
 
 const assignPermissionToRole = `-- name: AssignPermissionToRole :exec
@@ -70,30 +71,135 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (C
 	return i, err
 }
 
-const createPart = `-- name: CreatePart :exec
+const createExam = `-- name: CreateExam :one
 
-INSERT INTO parts(skill, name, description, sequence)
-VALUES($1,$2,$3,$4)
+INSERT INTO Exams (
+    exam_title,
+    description,
+    duration_minutes,
+    exam_type,
+    max_listening_score,
+    max_reading_score,
+    max_speaking_score,
+    max_writing_score,
+    total_score
+) VALUES (
+             $1, $2, $3, $4, $5, $6, $7, $8, $9
+         ) RETURNING exam_id
 `
 
-type CreatePartParams struct {
-	Skill       string         `json:"skill"`
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
-	Sequence    int32          `json:"sequence"`
+type CreateExamParams struct {
+	ExamTitle         string         `json:"exam_title"`
+	Description       sql.NullString `json:"description"`
+	DurationMinutes   sql.NullInt32  `json:"duration_minutes"`
+	ExamType          string         `json:"exam_type"`
+	MaxListeningScore sql.NullInt32  `json:"max_listening_score"`
+	MaxReadingScore   sql.NullInt32  `json:"max_reading_score"`
+	MaxSpeakingScore  sql.NullInt32  `json:"max_speaking_score"`
+	MaxWritingScore   sql.NullInt32  `json:"max_writing_score"`
+	TotalScore        sql.NullInt32  `json:"total_score"`
 }
 
 // ========================
 // 002
 // ========================
-func (q *Queries) CreatePart(ctx context.Context, arg CreatePartParams) error {
-	_, err := q.db.ExecContext(ctx, createPart,
-		arg.Skill,
-		arg.Name,
+func (q *Queries) CreateExam(ctx context.Context, arg CreateExamParams) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, createExam,
+		arg.ExamTitle,
 		arg.Description,
-		arg.Sequence,
+		arg.DurationMinutes,
+		arg.ExamType,
+		arg.MaxListeningScore,
+		arg.MaxReadingScore,
+		arg.MaxSpeakingScore,
+		arg.MaxWritingScore,
+		arg.TotalScore,
 	)
-	return err
+	var exam_id uuid.UUID
+	err := row.Scan(&exam_id)
+	return exam_id, err
+}
+
+const createExamPart = `-- name: CreateExamPart :one
+INSERT INTO exam_parts (
+    exam_id,
+    part_title,
+    part_order,
+    description,
+    is_practice_component,
+    plan_type,
+    toeic_part_number
+) VALUES (
+             $1, $2, $3, $4, $5, $6, $7
+         ) RETURNING part_id
+`
+
+type CreateExamPartParams struct {
+	ExamID              uuid.NullUUID  `json:"exam_id"`
+	PartTitle           string         `json:"part_title"`
+	PartOrder           sql.NullInt32  `json:"part_order"`
+	Description         sql.NullString `json:"description"`
+	IsPracticeComponent sql.NullBool   `json:"is_practice_component"`
+	PlanType            string         `json:"plan_type"`
+	ToeicPartNumber     sql.NullInt32  `json:"toeic_part_number"`
+}
+
+func (q *Queries) CreateExamPart(ctx context.Context, arg CreateExamPartParams) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, createExamPart,
+		arg.ExamID,
+		arg.PartTitle,
+		arg.PartOrder,
+		arg.Description,
+		arg.IsPracticeComponent,
+		arg.PlanType,
+		arg.ToeicPartNumber,
+	)
+	var part_id uuid.UUID
+	err := row.Scan(&part_id)
+	return part_id, err
+}
+
+const createParagraph = `-- name: CreateParagraph :one
+
+INSERT INTO Paragraphs (
+    paragraph_content,
+    title,
+    part_id,
+    paragraph_order,
+    paragraph_type,
+    audio_url,
+    image_url
+) VALUES (
+             $1, $2, $3, $4, $5, $6, $7
+         ) RETURNING paragraph_id
+`
+
+type CreateParagraphParams struct {
+	ParagraphContent string         `json:"paragraph_content"`
+	Title            sql.NullString `json:"title"`
+	PartID           uuid.UUID      `json:"part_id"`
+	ParagraphOrder   int32          `json:"paragraph_order"`
+	ParagraphType    sql.NullString `json:"paragraph_type"`
+	AudioUrl         sql.NullString `json:"audio_url"`
+	ImageUrl         sql.NullString `json:"image_url"`
+}
+
+// -
+// Paragraphs Queries
+// -
+func (q *Queries) CreateParagraph(ctx context.Context, arg CreateParagraphParams) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, createParagraph,
+		arg.ParagraphContent,
+		arg.Title,
+		arg.PartID,
+		arg.ParagraphOrder,
+		arg.ParagraphType,
+		arg.AudioUrl,
+		arg.ImageUrl,
+	)
+	var paragraph_id uuid.UUID
+	err := row.Scan(&paragraph_id)
+	return paragraph_id, err
 }
 
 const createPermission = `-- name: CreatePermission :exec
@@ -112,32 +218,59 @@ func (q *Queries) CreatePermission(ctx context.Context, arg CreatePermissionPara
 	return err
 }
 
-const createQuestionGroup = `-- name: CreateQuestionGroup :one
-INSERT INTO  question_groups
-    (name, description, part_id,plan_type, group_type)
-VALUES($1,$2,$3,$4,$5)
-RETURNING question_group_id
+const createQuestion = `-- name: CreateQuestion :one
+
+INSERT INTO Questions (
+    question_content,
+    question_type,
+    part_id,
+    paragraph_id,
+    question_order,
+    audio_url,
+    image_url,
+    toeic_question_section,
+    question_number_in_part,
+    answer_option,
+    correct_answer
+) VALUES (
+             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+         ) RETURNING question_id
 `
 
-type CreateQuestionGroupParams struct {
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
-	PartID      uuid.UUID      `json:"part_id"`
-	PlanType    string         `json:"plan_type"`
-	GroupType   string         `json:"group_type"`
+type CreateQuestionParams struct {
+	QuestionContent      string                `json:"question_content"`
+	QuestionType         string                `json:"question_type"`
+	PartID               uuid.UUID             `json:"part_id"`
+	ParagraphID          uuid.NullUUID         `json:"paragraph_id"`
+	QuestionOrder        int32                 `json:"question_order"`
+	AudioUrl             sql.NullString        `json:"audio_url"`
+	ImageUrl             sql.NullString        `json:"image_url"`
+	ToeicQuestionSection string                `json:"toeic_question_section"`
+	QuestionNumberInPart sql.NullInt32         `json:"question_number_in_part"`
+	AnswerOption         pqtype.NullRawMessage `json:"answer_option"`
+	CorrectAnswer        sql.NullString        `json:"correct_answer"`
 }
 
-func (q *Queries) CreateQuestionGroup(ctx context.Context, arg CreateQuestionGroupParams) (uuid.UUID, error) {
-	row := q.db.QueryRowContext(ctx, createQuestionGroup,
-		arg.Name,
-		arg.Description,
+// -
+// Questions Queries
+// -
+func (q *Queries) CreateQuestion(ctx context.Context, arg CreateQuestionParams) (uuid.UUID, error) {
+	row := q.db.QueryRowContext(ctx, createQuestion,
+		arg.QuestionContent,
+		arg.QuestionType,
 		arg.PartID,
-		arg.PlanType,
-		arg.GroupType,
+		arg.ParagraphID,
+		arg.QuestionOrder,
+		arg.AudioUrl,
+		arg.ImageUrl,
+		arg.ToeicQuestionSection,
+		arg.QuestionNumberInPart,
+		arg.AnswerOption,
+		arg.CorrectAnswer,
 	)
-	var question_group_id uuid.UUID
-	err := row.Scan(&question_group_id)
-	return question_group_id, err
+	var question_id uuid.UUID
+	err := row.Scan(&question_id)
+	return question_id, err
 }
 
 const createRole = `-- name: CreateRole :exec
@@ -187,6 +320,39 @@ func (q *Queries) CreateUserProfile(ctx context.Context, arg CreateUserProfilePa
 	return err
 }
 
+const deleteExam = `-- name: DeleteExam :exec
+DELETE FROM Exams
+WHERE
+    exam_id = $1
+`
+
+func (q *Queries) DeleteExam(ctx context.Context, examID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteExam, examID)
+	return err
+}
+
+const deleteExamPart = `-- name: DeleteExamPart :exec
+DELETE FROM exam_parts
+WHERE
+    part_id = $1
+`
+
+func (q *Queries) DeleteExamPart(ctx context.Context, partID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteExamPart, partID)
+	return err
+}
+
+const deleteParagraph = `-- name: DeleteParagraph :exec
+DELETE FROM Paragraphs
+WHERE
+    paragraph_id = $1
+`
+
+func (q *Queries) DeleteParagraph(ctx context.Context, paragraphID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteParagraph, paragraphID)
+	return err
+}
+
 const deletePermission = `-- name: DeletePermission :exec
 DELETE FROM permissions WHERE id = $1
 `
@@ -194,6 +360,17 @@ DELETE FROM permissions WHERE id = $1
 // DeletePermission deletes a permission by its ID.
 func (q *Queries) DeletePermission(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deletePermission, id)
+	return err
+}
+
+const deleteQuestion = `-- name: DeleteQuestion :exec
+DELETE FROM Questions
+WHERE
+    question_id = $1
+`
+
+func (q *Queries) DeleteQuestion(ctx context.Context, questionID uuid.UUID) error {
+	_, err := q.db.ExecContext(ctx, deleteQuestion, questionID)
 	return err
 }
 
@@ -207,59 +384,191 @@ func (q *Queries) DeleteRole(ctx context.Context, id uuid.UUID) error {
 	return err
 }
 
-const getAudioUrlGroup = `-- name: GetAudioUrlGroup :one
-SELECT  context_audio_url
-FROM question_groups
-WHERE question_group_id=$1
+const getExam = `-- name: GetExam :one
+SELECT
+    exam_id,
+    exam_title,
+    description,
+    duration_minutes,
+    exam_type,
+    max_listening_score,
+    max_reading_score,
+    max_speaking_score,
+    max_writing_score,
+    total_score,
+    created_at,
+    updated_at
+FROM
+    Exams
+WHERE
+    exam_id = $1
 `
 
-func (q *Queries) GetAudioUrlGroup(ctx context.Context, questionGroupID uuid.UUID) (sql.NullString, error) {
-	row := q.db.QueryRowContext(ctx, getAudioUrlGroup, questionGroupID)
-	var context_audio_url sql.NullString
-	err := row.Scan(&context_audio_url)
-	return context_audio_url, err
+func (q *Queries) GetExam(ctx context.Context, examID uuid.UUID) (Exam, error) {
+	row := q.db.QueryRowContext(ctx, getExam, examID)
+	var i Exam
+	err := row.Scan(
+		&i.ExamID,
+		&i.ExamTitle,
+		&i.Description,
+		&i.DurationMinutes,
+		&i.ExamType,
+		&i.MaxListeningScore,
+		&i.MaxReadingScore,
+		&i.MaxSpeakingScore,
+		&i.MaxWritingScore,
+		&i.TotalScore,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
-const getImageUrlGroup = `-- name: GetImageUrlGroup :one
-SELECT  context_image_url
-FROM question_groups
-WHERE question_group_id=$1
+const getExamPartByID = `-- name: GetExamPartByID :one
+SELECT
+    part_id,
+    exam_id,
+    part_title,
+    part_order,
+    description,
+    is_practice_component,
+    plan_type,
+    created_at,
+    updated_at,
+    toeic_part_number
+FROM
+    exam_parts
+WHERE
+    part_id = $1
 `
 
-func (q *Queries) GetImageUrlGroup(ctx context.Context, questionGroupID uuid.UUID) (sql.NullString, error) {
-	row := q.db.QueryRowContext(ctx, getImageUrlGroup, questionGroupID)
-	var context_image_url sql.NullString
-	err := row.Scan(&context_image_url)
-	return context_image_url, err
+func (q *Queries) GetExamPartByID(ctx context.Context, partID uuid.UUID) (ExamPart, error) {
+	row := q.db.QueryRowContext(ctx, getExamPartByID, partID)
+	var i ExamPart
+	err := row.Scan(
+		&i.PartID,
+		&i.ExamID,
+		&i.PartTitle,
+		&i.PartOrder,
+		&i.Description,
+		&i.IsPracticeComponent,
+		&i.PlanType,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.ToeicPartNumber,
+	)
+	return i, err
 }
 
-const getPaginatedParts = `-- name: GetPaginatedParts :many
-SELECT part_id, skill, name, description, sequence, created_at, updated_at
-FROM parts
-ORDER BY created_at ASC 
-LIMIT $1 OFFSET $2
+const getExamPartsByExamId = `-- name: GetExamPartsByExamId :many
+SELECT
+    part_id,
+    exam_id,
+    part_title,
+    part_order,
+    description,
+    is_practice_component,
+    plan_type,
+    created_at,
+    updated_at,
+    toeic_part_number
+FROM
+    exam_parts
+WHERE
+    exam_id = $1
+ORDER BY
+    part_order
 `
 
-type GetPaginatedPartsParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
-}
-
-func (q *Queries) GetPaginatedParts(ctx context.Context, arg GetPaginatedPartsParams) ([]Part, error) {
-	rows, err := q.db.QueryContext(ctx, getPaginatedParts, arg.Limit, arg.Offset)
+func (q *Queries) GetExamPartsByExamId(ctx context.Context, examID uuid.NullUUID) ([]ExamPart, error) {
+	rows, err := q.db.QueryContext(ctx, getExamPartsByExamId, examID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Part{}
+	items := []ExamPart{}
 	for rows.Next() {
-		var i Part
+		var i ExamPart
 		if err := rows.Scan(
 			&i.PartID,
-			&i.Skill,
-			&i.Name,
+			&i.ExamID,
+			&i.PartTitle,
+			&i.PartOrder,
 			&i.Description,
-			&i.Sequence,
+			&i.IsPracticeComponent,
+			&i.PlanType,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ToeicPartNumber,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getExamsCount = `-- name: GetExamsCount :one
+SELECT COUNT(*) FROM exams
+`
+
+func (q *Queries) GetExamsCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getExamsCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const getPaginatedExams = `-- name: GetPaginatedExams :many
+SELECT
+    exam_id,
+    exam_title,
+    description,
+    duration_minutes,
+    exam_type,
+    max_listening_score,
+    max_reading_score,
+    max_speaking_score,
+    max_writing_score,
+    total_score,
+    created_at,
+    updated_at
+FROM
+    Exams
+LIMIT $1 OFFSET $2
+`
+
+type GetPaginatedExamsParams struct {
+	Limit  int32 `json:"limit"`
+	Offset int32 `json:"offset"`
+}
+
+func (q *Queries) GetPaginatedExams(ctx context.Context, arg GetPaginatedExamsParams) ([]Exam, error) {
+	rows, err := q.db.QueryContext(ctx, getPaginatedExams, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Exam{}
+	for rows.Next() {
+		var i Exam
+		if err := rows.Scan(
+			&i.ExamID,
+			&i.ExamTitle,
+			&i.Description,
+			&i.DurationMinutes,
+			&i.ExamType,
+			&i.MaxListeningScore,
+			&i.MaxReadingScore,
+			&i.MaxSpeakingScore,
+			&i.MaxWritingScore,
+			&i.TotalScore,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -276,43 +585,50 @@ func (q *Queries) GetPaginatedParts(ctx context.Context, arg GetPaginatedPartsPa
 	return items, nil
 }
 
-const getPaginatedQuestionGroups = `-- name: GetPaginatedQuestionGroups :many
-SELECT question_group_id,name, description, part_id,plan_type, group_type
-FROM question_groups
-ORDER BY created_at DESC
+const getPaginatedPracticeExamParts = `-- name: GetPaginatedPracticeExamParts :many
+SELECT
+    part_id,
+    exam_id,
+    part_title,
+    part_order,
+    description,
+    is_practice_component,
+    plan_type,
+    created_at,
+    updated_at,
+    toeic_part_number
+FROM
+    exam_parts
+WHERE
+    is_practice_component == 'TRUE'
 LIMIT $1 OFFSET $2
 `
 
-type GetPaginatedQuestionGroupsParams struct {
+type GetPaginatedPracticeExamPartsParams struct {
 	Limit  int32 `json:"limit"`
 	Offset int32 `json:"offset"`
 }
 
-type GetPaginatedQuestionGroupsRow struct {
-	QuestionGroupID uuid.UUID      `json:"question_group_id"`
-	Name            string         `json:"name"`
-	Description     sql.NullString `json:"description"`
-	PartID          uuid.UUID      `json:"part_id"`
-	PlanType        string         `json:"plan_type"`
-	GroupType       string         `json:"group_type"`
-}
-
-func (q *Queries) GetPaginatedQuestionGroups(ctx context.Context, arg GetPaginatedQuestionGroupsParams) ([]GetPaginatedQuestionGroupsRow, error) {
-	rows, err := q.db.QueryContext(ctx, getPaginatedQuestionGroups, arg.Limit, arg.Offset)
+func (q *Queries) GetPaginatedPracticeExamParts(ctx context.Context, arg GetPaginatedPracticeExamPartsParams) ([]ExamPart, error) {
+	rows, err := q.db.QueryContext(ctx, getPaginatedPracticeExamParts, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []GetPaginatedQuestionGroupsRow{}
+	items := []ExamPart{}
 	for rows.Next() {
-		var i GetPaginatedQuestionGroupsRow
+		var i ExamPart
 		if err := rows.Scan(
-			&i.QuestionGroupID,
-			&i.Name,
-			&i.Description,
 			&i.PartID,
+			&i.ExamID,
+			&i.PartTitle,
+			&i.PartOrder,
+			&i.Description,
+			&i.IsPracticeComponent,
 			&i.PlanType,
-			&i.GroupType,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.ToeicPartNumber,
 		); err != nil {
 			return nil, err
 		}
@@ -377,36 +693,92 @@ func (q *Queries) GetPaginatedUsers(ctx context.Context, arg GetPaginatedUsersPa
 	return items, nil
 }
 
-const getPart = `-- name: GetPart :one
-SELECT part_id, skill, name, description, sequence, created_at, updated_at
-FROM parts
-WHERE part_id=$1
+const getParagraphByID = `-- name: GetParagraphByID :one
+SELECT
+    paragraph_id,
+    paragraph_content,
+    title,
+    part_id,
+    paragraph_order,
+    paragraph_type,
+    audio_url,
+    image_url,
+    created_at,
+    updated_at
+FROM
+    Paragraphs
+WHERE
+    paragraph_id = $1
 `
 
-func (q *Queries) GetPart(ctx context.Context, partID uuid.UUID) (Part, error) {
-	row := q.db.QueryRowContext(ctx, getPart, partID)
-	var i Part
+func (q *Queries) GetParagraphByID(ctx context.Context, paragraphID uuid.UUID) (Paragraph, error) {
+	row := q.db.QueryRowContext(ctx, getParagraphByID, paragraphID)
+	var i Paragraph
 	err := row.Scan(
+		&i.ParagraphID,
+		&i.ParagraphContent,
+		&i.Title,
 		&i.PartID,
-		&i.Skill,
-		&i.Name,
-		&i.Description,
-		&i.Sequence,
+		&i.ParagraphOrder,
+		&i.ParagraphType,
+		&i.AudioUrl,
+		&i.ImageUrl,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const getPartsCount = `-- name: GetPartsCount :one
-SELECT COUNT(*) FROM parts
+const getParagraphByPartId = `-- name: GetParagraphByPartId :many
+SELECT
+    paragraph_id,
+    paragraph_content,
+    title,
+    part_id,
+    paragraph_order,
+    paragraph_type,
+    audio_url,
+    image_url,
+    created_at,
+    updated_at
+FROM
+    Paragraphs
+WHERE
+    part_id = $1
 `
 
-func (q *Queries) GetPartsCount(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, getPartsCount)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
+func (q *Queries) GetParagraphByPartId(ctx context.Context, partID uuid.UUID) ([]Paragraph, error) {
+	rows, err := q.db.QueryContext(ctx, getParagraphByPartId, partID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Paragraph{}
+	for rows.Next() {
+		var i Paragraph
+		if err := rows.Scan(
+			&i.ParagraphID,
+			&i.ParagraphContent,
+			&i.Title,
+			&i.PartID,
+			&i.ParagraphOrder,
+			&i.ParagraphType,
+			&i.AudioUrl,
+			&i.ImageUrl,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getPermissions = `-- name: GetPermissions :many
@@ -442,6 +814,100 @@ func (q *Queries) GetPermissions(ctx context.Context) ([]Permission, error) {
 		return nil, err
 	}
 	return items, nil
+}
+
+const getPracticeExamPartCount = `-- name: GetPracticeExamPartCount :one
+SELECT COUNT(*) FROM exam_parts where is_practice_component == 'TRUE'
+`
+
+func (q *Queries) GetPracticeExamPartCount(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getPracticeExamPartCount)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const getQuestionByID = `-- name: GetQuestionByID :one
+SELECT
+    question_id,
+    question_content,
+    question_type,
+    part_id,
+    paragraph_id,
+    question_order,
+    audio_url,
+    image_url,
+    toeic_question_section,
+    question_number_in_part,
+    answer_option,
+    correct_answer,
+    created_at,
+    updated_at
+FROM
+    Questions
+WHERE
+    question_id = $1
+`
+
+func (q *Queries) GetQuestionByID(ctx context.Context, questionID uuid.UUID) (Question, error) {
+	row := q.db.QueryRowContext(ctx, getQuestionByID, questionID)
+	var i Question
+	err := row.Scan(
+		&i.QuestionID,
+		&i.QuestionContent,
+		&i.QuestionType,
+		&i.PartID,
+		&i.ParagraphID,
+		&i.QuestionOrder,
+		&i.AudioUrl,
+		&i.ImageUrl,
+		&i.ToeicQuestionSection,
+		&i.QuestionNumberInPart,
+		&i.AnswerOption,
+		&i.CorrectAnswer,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getRole = `-- name: GetRole :one
+SELECT
+    r.id AS role_id,
+    r.name AS role_name,
+    r.description AS role_description,
+    p.id AS permission_id,
+    p.name AS permission_name,
+    p.description AS permission_description
+FROM
+    roles AS r
+        JOIN
+    role_permissions AS rp ON r.id = rp.role_id
+        JOIN
+    permissions AS p ON rp.permission_id = p.id
+`
+
+type GetRoleRow struct {
+	RoleID                uuid.UUID      `json:"role_id"`
+	RoleName              string         `json:"role_name"`
+	RoleDescription       sql.NullString `json:"role_description"`
+	PermissionID          uuid.UUID      `json:"permission_id"`
+	PermissionName        string         `json:"permission_name"`
+	PermissionDescription sql.NullString `json:"permission_description"`
+}
+
+func (q *Queries) GetRole(ctx context.Context) (GetRoleRow, error) {
+	row := q.db.QueryRowContext(ctx, getRole)
+	var i GetRoleRow
+	err := row.Scan(
+		&i.RoleID,
+		&i.RoleName,
+		&i.RoleDescription,
+		&i.PermissionID,
+		&i.PermissionName,
+		&i.PermissionDescription,
+	)
+	return i, err
 }
 
 const getRoles = `-- name: GetRoles :many
@@ -606,6 +1072,230 @@ func (q *Queries) HasPermission(ctx context.Context, arg HasPermissionParams) (b
 	return exists, err
 }
 
+const listParagraphs = `-- name: ListParagraphs :many
+SELECT
+    paragraph_id,
+    paragraph_content,
+    title,
+    part_id,
+    paragraph_order,
+    paragraph_type,
+    audio_url,
+    image_url,
+    created_at,
+    updated_at
+FROM
+    Paragraphs
+`
+
+func (q *Queries) ListParagraphs(ctx context.Context) ([]Paragraph, error) {
+	rows, err := q.db.QueryContext(ctx, listParagraphs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Paragraph{}
+	for rows.Next() {
+		var i Paragraph
+		if err := rows.Scan(
+			&i.ParagraphID,
+			&i.ParagraphContent,
+			&i.Title,
+			&i.PartID,
+			&i.ParagraphOrder,
+			&i.ParagraphType,
+			&i.AudioUrl,
+			&i.ImageUrl,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listParagraphsByPartID = `-- name: ListParagraphsByPartID :many
+SELECT
+    paragraph_id,
+    paragraph_content,
+    title,
+    part_id,
+    paragraph_order,
+    paragraph_type,
+    audio_url,
+    image_url,
+    created_at,
+    updated_at
+FROM
+    Paragraphs
+WHERE
+    part_id = $1
+ORDER BY
+    paragraph_order
+`
+
+func (q *Queries) ListParagraphsByPartID(ctx context.Context, partID uuid.UUID) ([]Paragraph, error) {
+	rows, err := q.db.QueryContext(ctx, listParagraphsByPartID, partID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Paragraph{}
+	for rows.Next() {
+		var i Paragraph
+		if err := rows.Scan(
+			&i.ParagraphID,
+			&i.ParagraphContent,
+			&i.Title,
+			&i.PartID,
+			&i.ParagraphOrder,
+			&i.ParagraphType,
+			&i.AudioUrl,
+			&i.ImageUrl,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listQuestions = `-- name: ListQuestions :many
+SELECT
+    question_id,
+    question_content,
+    question_type,
+    part_id,
+    paragraph_id,
+    question_order,
+    audio_url,
+    image_url,
+    toeic_question_section,
+    question_number_in_part,
+    answer_option,
+    correct_answer,
+    created_at,
+    updated_at
+FROM
+    Questions
+`
+
+func (q *Queries) ListQuestions(ctx context.Context) ([]Question, error) {
+	rows, err := q.db.QueryContext(ctx, listQuestions)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Question{}
+	for rows.Next() {
+		var i Question
+		if err := rows.Scan(
+			&i.QuestionID,
+			&i.QuestionContent,
+			&i.QuestionType,
+			&i.PartID,
+			&i.ParagraphID,
+			&i.QuestionOrder,
+			&i.AudioUrl,
+			&i.ImageUrl,
+			&i.ToeicQuestionSection,
+			&i.QuestionNumberInPart,
+			&i.AnswerOption,
+			&i.CorrectAnswer,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listQuestionsByPartID = `-- name: ListQuestionsByPartID :many
+SELECT
+    question_id,
+    question_content,
+    question_type,
+    part_id,
+    paragraph_id,
+    question_order,
+    audio_url,
+    image_url,
+    toeic_question_section,
+    question_number_in_part,
+    answer_option,
+    correct_answer,
+    created_at,
+    updated_at
+FROM
+    Questions
+WHERE
+    part_id = $1
+ORDER BY
+    question_order
+`
+
+func (q *Queries) ListQuestionsByPartID(ctx context.Context, partID uuid.UUID) ([]Question, error) {
+	rows, err := q.db.QueryContext(ctx, listQuestionsByPartID, partID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Question{}
+	for rows.Next() {
+		var i Question
+		if err := rows.Scan(
+			&i.QuestionID,
+			&i.QuestionContent,
+			&i.QuestionType,
+			&i.PartID,
+			&i.ParagraphID,
+			&i.QuestionOrder,
+			&i.AudioUrl,
+			&i.ImageUrl,
+			&i.ToeicQuestionSection,
+			&i.QuestionNumberInPart,
+			&i.AnswerOption,
+			&i.CorrectAnswer,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const lockUser = `-- name: LockUser :execresult
 UPDATE users
 set is_locked=true,lock_reason=$1,locked_at=now()
@@ -629,17 +1319,6 @@ SELECT EXISTS(SELECT 1 FROM permissions WHERE id = $1)
 // PermissionExists checks if a permission with the given ID exists.
 func (q *Queries) PermissionExists(ctx context.Context, id uuid.UUID) (bool, error) {
 	row := q.db.QueryRowContext(ctx, permissionExists, id)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
-}
-
-const questionGroupExists = `-- name: QuestionGroupExists :one
-SELECT EXISTS(SELECT 1 FROM question_groups WHERE question_group_id = $1)
-`
-
-func (q *Queries) QuestionGroupExists(ctx context.Context, questionGroupID uuid.UUID) (bool, error) {
-	row := q.db.QueryRowContext(ctx, questionGroupExists, questionGroupID)
 	var exists bool
 	err := row.Scan(&exists)
 	return exists, err
@@ -673,60 +1352,156 @@ func (q *Queries) UnlockUser(ctx context.Context, arg UnlockUserParams) (sql.Res
 	return q.db.ExecContext(ctx, unlockUser, arg.UnlockReason, arg.ID)
 }
 
-const updateAudioContentQuestionGroup = `-- name: UpdateAudioContentQuestionGroup :exec
-UPDATE question_groups
-SET context_audio_url=$1
-WHERE question_group_id=$2
+const updateExam = `-- name: UpdateExam :exec
+UPDATE Exams
+SET
+    exam_title = $2,
+    description = $3,
+    duration_minutes = $4,
+    exam_type = $5,
+    max_listening_score = $6,
+    max_reading_score = $7,
+    max_speaking_score = $8,
+    max_writing_score = $9,
+    total_score = $10
+WHERE
+    exam_id = $1
 `
 
-type UpdateAudioContentQuestionGroupParams struct {
-	ContextAudioUrl sql.NullString `json:"context_audio_url"`
-	QuestionGroupID uuid.UUID      `json:"question_group_id"`
+type UpdateExamParams struct {
+	ExamID            uuid.UUID      `json:"exam_id"`
+	ExamTitle         string         `json:"exam_title"`
+	Description       sql.NullString `json:"description"`
+	DurationMinutes   sql.NullInt32  `json:"duration_minutes"`
+	ExamType          string         `json:"exam_type"`
+	MaxListeningScore sql.NullInt32  `json:"max_listening_score"`
+	MaxReadingScore   sql.NullInt32  `json:"max_reading_score"`
+	MaxSpeakingScore  sql.NullInt32  `json:"max_speaking_score"`
+	MaxWritingScore   sql.NullInt32  `json:"max_writing_score"`
+	TotalScore        sql.NullInt32  `json:"total_score"`
 }
 
-func (q *Queries) UpdateAudioContentQuestionGroup(ctx context.Context, arg UpdateAudioContentQuestionGroupParams) error {
-	_, err := q.db.ExecContext(ctx, updateAudioContentQuestionGroup, arg.ContextAudioUrl, arg.QuestionGroupID)
-	return err
-}
-
-const updateImageContentQuestionGroup = `-- name: UpdateImageContentQuestionGroup :exec
-UPDATE question_groups
-SET context_image_url=$1
-WHERE question_group_id=$2
-`
-
-type UpdateImageContentQuestionGroupParams struct {
-	ContextImageUrl sql.NullString `json:"context_image_url"`
-	QuestionGroupID uuid.UUID      `json:"question_group_id"`
-}
-
-func (q *Queries) UpdateImageContentQuestionGroup(ctx context.Context, arg UpdateImageContentQuestionGroupParams) error {
-	_, err := q.db.ExecContext(ctx, updateImageContentQuestionGroup, arg.ContextImageUrl, arg.QuestionGroupID)
-	return err
-}
-
-const updatePart = `-- name: UpdatePart :exec
-UPDATE parts
-SET skill=$1,name=$2,description=$3,sequence=$4
-WHERE part_id=$5
-`
-
-type UpdatePartParams struct {
-	Skill       string         `json:"skill"`
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
-	Sequence    int32          `json:"sequence"`
-	PartID      uuid.UUID      `json:"part_id"`
-}
-
-func (q *Queries) UpdatePart(ctx context.Context, arg UpdatePartParams) error {
-	_, err := q.db.ExecContext(ctx, updatePart,
-		arg.Skill,
-		arg.Name,
+func (q *Queries) UpdateExam(ctx context.Context, arg UpdateExamParams) error {
+	_, err := q.db.ExecContext(ctx, updateExam,
+		arg.ExamID,
+		arg.ExamTitle,
 		arg.Description,
-		arg.Sequence,
-		arg.PartID,
+		arg.DurationMinutes,
+		arg.ExamType,
+		arg.MaxListeningScore,
+		arg.MaxReadingScore,
+		arg.MaxSpeakingScore,
+		arg.MaxWritingScore,
+		arg.TotalScore,
 	)
+	return err
+}
+
+const updateExamPart = `-- name: UpdateExamPart :exec
+UPDATE exam_parts
+SET
+    exam_id = $2,
+    part_title = $3,
+    part_order = $4,
+    description = $5,
+    is_practice_component = $6,
+    plan_type = $7,
+    toeic_part_number = $8
+WHERE
+    part_id = $1
+`
+
+type UpdateExamPartParams struct {
+	PartID              uuid.UUID      `json:"part_id"`
+	ExamID              uuid.NullUUID  `json:"exam_id"`
+	PartTitle           string         `json:"part_title"`
+	PartOrder           sql.NullInt32  `json:"part_order"`
+	Description         sql.NullString `json:"description"`
+	IsPracticeComponent sql.NullBool   `json:"is_practice_component"`
+	PlanType            string         `json:"plan_type"`
+	ToeicPartNumber     sql.NullInt32  `json:"toeic_part_number"`
+}
+
+func (q *Queries) UpdateExamPart(ctx context.Context, arg UpdateExamPartParams) error {
+	_, err := q.db.ExecContext(ctx, updateExamPart,
+		arg.PartID,
+		arg.ExamID,
+		arg.PartTitle,
+		arg.PartOrder,
+		arg.Description,
+		arg.IsPracticeComponent,
+		arg.PlanType,
+		arg.ToeicPartNumber,
+	)
+	return err
+}
+
+const updateParagraph = `-- name: UpdateParagraph :exec
+UPDATE Paragraphs
+SET
+    paragraph_content = $2,
+    title = $3,
+    part_id = $4,
+    paragraph_order = $5,
+    paragraph_type = $6
+WHERE
+    paragraph_id = $1
+`
+
+type UpdateParagraphParams struct {
+	ParagraphID      uuid.UUID      `json:"paragraph_id"`
+	ParagraphContent string         `json:"paragraph_content"`
+	Title            sql.NullString `json:"title"`
+	PartID           uuid.UUID      `json:"part_id"`
+	ParagraphOrder   int32          `json:"paragraph_order"`
+	ParagraphType    sql.NullString `json:"paragraph_type"`
+}
+
+func (q *Queries) UpdateParagraph(ctx context.Context, arg UpdateParagraphParams) error {
+	_, err := q.db.ExecContext(ctx, updateParagraph,
+		arg.ParagraphID,
+		arg.ParagraphContent,
+		arg.Title,
+		arg.PartID,
+		arg.ParagraphOrder,
+		arg.ParagraphType,
+	)
+	return err
+}
+
+const updateParagraphAudioURL = `-- name: UpdateParagraphAudioURL :exec
+UPDATE Paragraphs
+SET
+    audio_url = $2
+WHERE
+    paragraph_id = $1
+`
+
+type UpdateParagraphAudioURLParams struct {
+	ParagraphID uuid.UUID      `json:"paragraph_id"`
+	AudioUrl    sql.NullString `json:"audio_url"`
+}
+
+func (q *Queries) UpdateParagraphAudioURL(ctx context.Context, arg UpdateParagraphAudioURLParams) error {
+	_, err := q.db.ExecContext(ctx, updateParagraphAudioURL, arg.ParagraphID, arg.AudioUrl)
+	return err
+}
+
+const updateParagraphImageURL = `-- name: UpdateParagraphImageURL :exec
+UPDATE Paragraphs
+SET
+    image_url = $2
+WHERE
+    paragraph_id = $1
+`
+
+type UpdateParagraphImageURLParams struct {
+	ParagraphID uuid.UUID      `json:"paragraph_id"`
+	ImageUrl    sql.NullString `json:"image_url"`
+}
+
+func (q *Queries) UpdateParagraphImageURL(ctx context.Context, arg UpdateParagraphImageURLParams) error {
+	_, err := q.db.ExecContext(ctx, updateParagraphImageURL, arg.ParagraphID, arg.ImageUrl)
 	return err
 }
 
@@ -746,32 +1521,84 @@ func (q *Queries) UpdatePassword(ctx context.Context, arg UpdatePasswordParams) 
 	return q.db.ExecContext(ctx, updatePassword, arg.Password, arg.ID)
 }
 
-const updateQuestionGroup = `-- name: UpdateQuestionGroup :exec
-UPDATE question_groups
-SET name=$1,description=$2,part_id=$3,plan_type=$4,group_type=$5,context_text_content=$6
-WHERE question_group_id=$7
+const updateQuestion = `-- name: UpdateQuestion :exec
+UPDATE Questions
+SET
+    question_content = $2,
+    question_type = $3,
+    part_id = $4,
+    paragraph_id = $5,
+    question_order = $6,
+    toeic_question_section = $7,
+    question_number_in_part = $8,
+    answer_option = $9,
+    correct_answer = $10
+WHERE
+    question_id = $1
 `
 
-type UpdateQuestionGroupParams struct {
-	Name               string         `json:"name"`
-	Description        sql.NullString `json:"description"`
-	PartID             uuid.UUID      `json:"part_id"`
-	PlanType           string         `json:"plan_type"`
-	GroupType          string         `json:"group_type"`
-	ContextTextContent sql.NullString `json:"context_text_content"`
-	QuestionGroupID    uuid.UUID      `json:"question_group_id"`
+type UpdateQuestionParams struct {
+	QuestionID           uuid.UUID             `json:"question_id"`
+	QuestionContent      string                `json:"question_content"`
+	QuestionType         string                `json:"question_type"`
+	PartID               uuid.UUID             `json:"part_id"`
+	ParagraphID          uuid.NullUUID         `json:"paragraph_id"`
+	QuestionOrder        int32                 `json:"question_order"`
+	ToeicQuestionSection string                `json:"toeic_question_section"`
+	QuestionNumberInPart sql.NullInt32         `json:"question_number_in_part"`
+	AnswerOption         pqtype.NullRawMessage `json:"answer_option"`
+	CorrectAnswer        sql.NullString        `json:"correct_answer"`
 }
 
-func (q *Queries) UpdateQuestionGroup(ctx context.Context, arg UpdateQuestionGroupParams) error {
-	_, err := q.db.ExecContext(ctx, updateQuestionGroup,
-		arg.Name,
-		arg.Description,
+func (q *Queries) UpdateQuestion(ctx context.Context, arg UpdateQuestionParams) error {
+	_, err := q.db.ExecContext(ctx, updateQuestion,
+		arg.QuestionID,
+		arg.QuestionContent,
+		arg.QuestionType,
 		arg.PartID,
-		arg.PlanType,
-		arg.GroupType,
-		arg.ContextTextContent,
-		arg.QuestionGroupID,
+		arg.ParagraphID,
+		arg.QuestionOrder,
+		arg.ToeicQuestionSection,
+		arg.QuestionNumberInPart,
+		arg.AnswerOption,
+		arg.CorrectAnswer,
 	)
+	return err
+}
+
+const updateQuestionAudioURL = `-- name: UpdateQuestionAudioURL :exec
+UPDATE Questions
+SET
+    audio_url = $2
+WHERE
+    question_id = $1
+`
+
+type UpdateQuestionAudioURLParams struct {
+	QuestionID uuid.UUID      `json:"question_id"`
+	AudioUrl   sql.NullString `json:"audio_url"`
+}
+
+func (q *Queries) UpdateQuestionAudioURL(ctx context.Context, arg UpdateQuestionAudioURLParams) error {
+	_, err := q.db.ExecContext(ctx, updateQuestionAudioURL, arg.QuestionID, arg.AudioUrl)
+	return err
+}
+
+const updateQuestionImageURL = `-- name: UpdateQuestionImageURL :exec
+UPDATE Questions
+SET
+    image_url = $2
+WHERE
+    question_id = $1
+`
+
+type UpdateQuestionImageURLParams struct {
+	QuestionID uuid.UUID      `json:"question_id"`
+	ImageUrl   sql.NullString `json:"image_url"`
+}
+
+func (q *Queries) UpdateQuestionImageURL(ctx context.Context, arg UpdateQuestionImageURLParams) error {
+	_, err := q.db.ExecContext(ctx, updateQuestionImageURL, arg.QuestionID, arg.ImageUrl)
 	return err
 }
 

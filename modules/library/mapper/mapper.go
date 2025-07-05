@@ -5,130 +5,203 @@ import (
 	"pirate-lang-go/modules/library/entity"
 )
 
-func ToPaginatedPartsResponse(parts *entity.PaginatedParts) *dto.PaginatedPartResponse {
+func ToCreateExamEntity(req *dto.CreateExamRequest) *entity.Exam {
+	if req == nil {
+		return nil
+	}
+	return &entity.Exam{
+		ExamTitle:         req.ExamTitle,
+		Description:       req.Description,
+		DurationMinutes:   int32(req.DurationMinutes),
+		ExamType:          req.ExamType,
+		MaxListeningScore: int32(req.MaxListeningScore),
+		MaxReadingScore:   int32(req.MaxReadingScore),
+		MaxSpeakingScore:  int32(req.MaxSpeakingScore),
+		MaxWritingScore:   req.MaxWritingScore,
+		TotalScore:        int32(req.MaxListeningScore + req.MaxReadingScore + req.MaxSpeakingScore + req.MaxWritingScore), // Example calculation
+	}
+}
+
+func ToUpdateExamEntity(req *dto.UpdateExamRequest) *entity.Exam {
+	if req == nil {
+		return nil
+	}
+
+	return &entity.Exam{
+		ExamTitle:         req.ExamTitle,
+		Description:       req.Description,
+		DurationMinutes:   req.DurationMinutes,
+		ExamType:          req.ExamType,
+		MaxListeningScore: req.MaxListeningScore,
+		MaxReadingScore:   req.MaxReadingScore,
+		MaxSpeakingScore:  req.MaxSpeakingScore,
+		MaxWritingScore:   req.MaxWritingScore,
+		TotalScore:        req.MaxListeningScore + req.MaxReadingScore + req.MaxSpeakingScore + req.MaxWritingScore,
+	}
+}
+
+func ToExamResponse(exam *entity.Exam) *dto.ExamResponse {
+	if exam == nil {
+		return nil
+	}
+	return &dto.ExamResponse{
+		ExamID:            exam.ExamID,
+		ExamTitle:         exam.ExamTitle,
+		Description:       exam.Description,
+		DurationMinutes:   int32(exam.DurationMinutes),
+		ExamType:          exam.ExamType,
+		MaxListeningScore: int32(exam.MaxListeningScore),
+		MaxReadingScore:   int32(exam.MaxReadingScore),
+		MaxSpeakingScore:  int32(exam.MaxSpeakingScore),
+		MaxWritingScore:   int32(exam.MaxWritingScore),
+		TotalScore:        int32(exam.TotalScore),
+		CreatedAt:         exam.CreatedAt,
+		UpdatedAt:         exam.UpdatedAt,
+	}
+}
+
+func ToPaginatedExamsResponse(exams *entity.PaginatedExams) *dto.PaginatedExamResponse {
+	if exams == nil {
+		return nil
+	}
+
+	examDTOs := make([]*dto.ExamResponse, 0, len(exams.Items))
+	for _, exam := range exams.Items {
+		examDTOs = append(examDTOs, &dto.ExamResponse{
+			ExamID:            exam.ExamID,
+			ExamTitle:         exam.ExamTitle,
+			Description:       exam.Description,
+			DurationMinutes:   int32(exam.DurationMinutes),
+			ExamType:          exam.ExamType,
+			MaxListeningScore: int32(exam.MaxListeningScore),
+			MaxReadingScore:   int32(exam.MaxReadingScore),
+			MaxSpeakingScore:  int32(exam.MaxSpeakingScore),
+			MaxWritingScore:   int32(exam.MaxWritingScore),
+			TotalScore:        int32(exam.TotalScore),
+			CreatedAt:         exam.CreatedAt,
+			UpdatedAt:         exam.UpdatedAt,
+		})
+	}
+
+	return &dto.PaginatedExamResponse{
+		Items:       examDTOs,
+		TotalItems:  exams.TotalItems,
+		TotalPages:  exams.TotalPages,
+		CurrentPage: exams.CurrentPage,
+		PageSize:    exams.PageSize,
+	}
+}
+func ToCreateExamPartEntity(dto *dto.CreateExamPartRequest) *entity.ExamPart {
+	if dto == nil {
+		return nil
+	}
+	return &entity.ExamPart{
+		ExamID:              dto.ExamID.UUID,
+		PartTitle:           dto.PartTitle,
+		PartOrder:           dto.PartOrder,
+		Description:         dto.Description,
+		IsPracticeComponent: dto.IsPracticeComponent,
+		PlanType:            dto.PlanType,
+		ToeicPartNumber:     dto.ToeicPartNumber,
+	}
+}
+
+func ToUpdateExamPartEntity(dto *dto.UpdateExamPartRequest) *entity.ExamPart {
+	if dto == nil {
+		return nil
+	}
+	return &entity.ExamPart{
+		ExamID:              dto.ExamID.UUID,
+		PartTitle:           dto.PartTitle,
+		PartOrder:           dto.PartOrder,
+		Description:         dto.Description,
+		IsPracticeComponent: dto.IsPracticeComponent,
+		PlanType:            dto.PlanType,
+		ToeicPartNumber:     dto.ToeicPartNumber,
+	}
+}
+func ToExamPartResponse(entity *entity.ExamPart) *dto.ExamPartResponse {
+	if entity == nil {
+		return nil
+	}
+	return &dto.ExamPartResponse{
+		PartTitle:           entity.PartTitle,
+		PartOrder:           entity.PartOrder,
+		Description:         entity.Description,
+		IsPracticeComponent: entity.IsPracticeComponent,
+		PlanType:            entity.PlanType,
+		ToeicPartNumber:     entity.ToeicPartNumber,
+	}
+}
+func ToPaginatedExamPartsResponse(parts *entity.PaginatedExamPart) *dto.PaginatedExamPartResponse {
 	if parts == nil {
 		return nil
 	}
 
-	partDtos := make([]*dto.PartResponse, 0, len(parts.Items))
-	for _, part := range parts.Items {
-		partDtos = append(partDtos, &dto.PartResponse{
-			ID:          part.ID,
-			Name:        part.Name,
-			Skill:       part.Skill,
-			Description: part.Description,
-			Sequence:    part.Sequence,
-			CreatedAt:   part.CreatedAt,
+	examDTOs := make([]*dto.ExamPartResponse, 0, len(parts.Items))
+	for _, exam := range parts.Items {
+		examDTOs = append(examDTOs, &dto.ExamPartResponse{
+			PartTitle:           exam.PartTitle,
+			PartOrder:           exam.PartOrder,
+			Description:         exam.Description,
+			IsPracticeComponent: exam.IsPracticeComponent,
+			PlanType:            exam.PlanType,
+			ToeicPartNumber:     exam.ToeicPartNumber,
+			CreatedAt:           exam.CreatedAt,
+			UpdatedAt:           exam.UpdatedAt,
 		})
 	}
 
-	return &dto.PaginatedPartResponse{
-		Items:       partDtos,
+	return &dto.PaginatedExamPartResponse{
+		Items:       examDTOs,
 		TotalItems:  parts.TotalItems,
 		TotalPages:  parts.TotalPages,
 		CurrentPage: parts.CurrentPage,
 		PageSize:    parts.PageSize,
 	}
 }
-func ToPartResponse(part *entity.Part) *dto.PartResponse {
-	if part == nil {
-		return nil
-	}
-	return &dto.PartResponse{
-		ID:          part.ID,
-		Name:        part.Name,
-		Skill:       part.Skill,
-		Description: part.Description,
-		Sequence:    part.Sequence,
-		CreatedAt:   part.CreatedAt,
-	}
-}
-func ToCreatePartEntity(part *dto.CreatePartRequest) *entity.Part {
-	if part == nil {
-		return nil
-	}
-	return &entity.Part{
-		Name:        part.Name,
-		Skill:       part.Skill,
-		Description: part.Description,
-		Sequence:    part.Sequence,
-	}
-}
-func ToUpdatePartEntity(part *dto.UpdatePartRequest) *entity.Part {
-	if part == nil {
-		return nil
-	}
-	return &entity.Part{
-		Name:        part.Name,
-		Skill:       part.Skill,
-		Description: part.Description,
-		Sequence:    part.Sequence,
-	}
-}
-func ToQuestionGroupEntity(dto *dto.CreateQuestionGroupRequest) *entity.QuestionGroup {
+func ToCreateParagraphEntity(dto *dto.CreateParagraphRequest) *entity.Paragraph {
 	if dto == nil {
 		return nil
 	}
-	return &entity.QuestionGroup{
-		Name:        dto.Name,
-		Description: dto.Description,
-		PartID:      dto.PartID,
-		PlanType:    dto.PlanType,
-		GroupType:   dto.GroupType,
+	return &entity.Paragraph{
+		ParagraphContent: dto.ParagraphContent,
+		Title:            dto.Title,
+		PartID:           dto.PartID,
+		ParagraphOrder:   dto.ParagraphOrder,
+		ParagraphType:    dto.ParagraphType,
+		AudioUrl:         dto.AudioUrl,
+		ImageUrl:         dto.ImageUrl,
 	}
 }
-func ToQuestionGroupEntityForUpdate(dto *dto.UpdateQuestionGroupRequest) *entity.QuestionGroup {
+
+func ToUpdateParagraphEntity(dto *dto.UpdateParagraphRequest) *entity.Paragraph {
 	if dto == nil {
 		return nil
 	}
-	return &entity.QuestionGroup{
-		Name:               dto.Name,
-		Description:        dto.Description,
-		PartID:             dto.PartID,
-		PlanType:           dto.PlanType,
-		GroupType:          dto.GroupType,
-		ContextTextContent: dto.ContextTextContent,
+	return &entity.Paragraph{
+		ParagraphContent: dto.ParagraphContent,
+		Title:            dto.Title,
+		PartID:           dto.PartID,
+		ParagraphOrder:   dto.ParagraphOrder,
+		ParagraphType:    dto.ParagraphType,
 	}
 }
-func ToQuestionGroupResponse(ent *entity.QuestionGroup) *dto.QuestionGroupResponse {
+
+func ToParagraphResponse(ent *entity.Paragraph) *dto.ParagraphResponse {
 	if ent == nil {
 		return nil
 	}
-	return &dto.QuestionGroupResponse{
-		ID:                 ent.QuestionGroupID,
-		Name:               ent.Name,
-		Description:        ent.Description,
-		PartID:             ent.PartID,
-		PlanType:           ent.PlanType,
-		GroupType:          ent.GroupType,
-		ContextTextContent: ent.ContextTextContent,
-		ContextAudioUrl:    ent.ContextAudioURL,
-		ContextImageUrl:    ent.ContextImageURL,
-	}
-}
-func ToPaginatedGroupsResponse(groups *entity.PaginatedQuestionGroup) *dto.PaginatedGroupResponse {
-	if groups == nil {
-		return nil
-	}
-
-	partDtos := make([]*dto.QuestionGroupResponse, 0, len(groups.Items))
-	for _, group := range groups.Items {
-
-		partDtos = append(partDtos, &dto.QuestionGroupResponse{
-			ID:          group.QuestionGroupID,
-			Name:        group.Name,
-			Description: group.Description,
-			PartID:      group.PartID,
-			PlanType:    group.PlanType,
-			GroupType:   group.GroupType,
-		})
-	}
-
-	return &dto.PaginatedGroupResponse{
-		Items:       partDtos,
-		TotalItems:  groups.TotalItems,
-		TotalPages:  groups.TotalPages,
-		CurrentPage: groups.CurrentPage,
-		PageSize:    groups.PageSize,
+	return &dto.ParagraphResponse{
+		ParagraphID:      ent.ParagraphID,
+		ParagraphContent: ent.ParagraphContent,
+		Title:            ent.Title,
+		PartID:           ent.PartID,
+		ParagraphOrder:   ent.ParagraphOrder,
+		ParagraphType:    ent.ParagraphType,
+		AudioUrl:         ent.AudioUrl,
+		ImageUrl:         ent.ImageUrl,
+		CreatedAt:        ent.CreatedAt,
+		UpdatedAt:        ent.UpdatedAt,
 	}
 }

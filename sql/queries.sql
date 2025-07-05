@@ -83,7 +83,20 @@ SELECT EXISTS(
                       JOIN permissions p ON rp.permission_id = p.id
     WHERE ur.user_id = $1 AND p.id = $2
 );
-
+-- name: GetRole :one
+SELECT
+    r.id AS role_id,
+    r.name AS role_name,
+    r.description AS role_description,
+    p.id AS permission_id,
+    p.name AS permission_name,
+    p.description AS permission_description
+FROM
+    roles AS r
+        JOIN
+    role_permissions AS rp ON r.id = rp.role_id
+        JOIN
+    permissions AS p ON rp.permission_id = p.id;
 -- name: LockUser :execresult
 -- LockUser to lock user account
 UPDATE users
@@ -125,58 +138,392 @@ WHERE
 -- 002
 -- ========================
 
--- name: CreatePart :exec
-INSERT INTO parts(skill, name, description, sequence)
-VALUES($1,$2,$3,$4);
--- name: UpdatePart :exec
-UPDATE parts
-SET skill=$1,name=$2,description=$3,sequence=$4
-WHERE part_id=$5;
--- name: GetPartsCount :one
-SELECT COUNT(*) FROM parts;
+-- name: CreateExam :one
+INSERT INTO Exams (
+    exam_title,
+    description,
+    duration_minutes,
+    exam_type,
+    max_listening_score,
+    max_reading_score,
+    max_speaking_score,
+    max_writing_score,
+    total_score
+) VALUES (
+             $1, $2, $3, $4, $5, $6, $7, $8, $9
+         ) RETURNING exam_id;
 
--- name: GetPaginatedParts :many
-SELECT part_id, skill, name, description, sequence, created_at, updated_at
-FROM parts
-ORDER BY created_at ASC 
+-- name: GetExam :one
+SELECT
+    exam_id,
+    exam_title,
+    description,
+    duration_minutes,
+    exam_type,
+    max_listening_score,
+    max_reading_score,
+    max_speaking_score,
+    max_writing_score,
+    total_score,
+    created_at,
+    updated_at
+FROM
+    Exams
+WHERE
+    exam_id = $1;
+
+-- name: GetPaginatedExams :many
+SELECT
+    exam_id,
+    exam_title,
+    description,
+    duration_minutes,
+    exam_type,
+    max_listening_score,
+    max_reading_score,
+    max_speaking_score,
+    max_writing_score,
+    total_score,
+    created_at,
+    updated_at
+FROM
+    Exams
 LIMIT $1 OFFSET $2;
+-- name: UpdateExam :exec
+UPDATE Exams
+SET
+    exam_title = $2,
+    description = $3,
+    duration_minutes = $4,
+    exam_type = $5,
+    max_listening_score = $6,
+    max_reading_score = $7,
+    max_speaking_score = $8,
+    max_writing_score = $9,
+    total_score = $10
+WHERE
+    exam_id = $1;
 
--- name: GetPart :one
-SELECT part_id, skill, name, description, sequence, created_at, updated_at
-FROM parts
-WHERE part_id=$1;
+-- name: DeleteExam :exec
+DELETE FROM Exams
+WHERE
+    exam_id = $1;
+-- name: GetExamsCount :one
+SELECT COUNT(*) FROM exams;
 
+-- name: CreateExamPart :one
+INSERT INTO exam_parts (
+    exam_id,
+    part_title,
+    part_order,
+    description,
+    is_practice_component,
+    plan_type,
+    toeic_part_number
+) VALUES (
+             $1, $2, $3, $4, $5, $6, $7
+         ) RETURNING part_id;
 
--- name: CreateQuestionGroup :one
-INSERT INTO  question_groups
-    (name, description, part_id,plan_type, group_type)
-VALUES($1,$2,$3,$4,$5)
-RETURNING question_group_id;
--- name: UpdateQuestionGroup :exec
-UPDATE question_groups
-SET name=$1,description=$2,part_id=$3,plan_type=$4,group_type=$5,context_text_content=$6
-WHERE question_group_id=$7;
--- name: QuestionGroupExists :one
-SELECT EXISTS(SELECT 1 FROM question_groups WHERE question_group_id = $1);
--- name: UpdateAudioContentQuestionGroup :exec
-UPDATE question_groups
-SET context_audio_url=$1
-WHERE question_group_id=$2;
--- name: UpdateImageContentQuestionGroup :exec
-UPDATE question_groups
-SET context_image_url=$1
-WHERE question_group_id=$2;
--- name: GetAudioUrlGroup :one
-SELECT  context_audio_url
-FROM question_groups
-WHERE question_group_id=$1;
--- name: GetImageUrlGroup :one
-SELECT  context_image_url
-FROM question_groups
-WHERE question_group_id=$1;
+-- name: GetExamPartByID :one
+SELECT
+    part_id,
+    exam_id,
+    part_title,
+    part_order,
+    description,
+    is_practice_component,
+    plan_type,
+    created_at,
+    updated_at,
+    toeic_part_number
+FROM
+    exam_parts
+WHERE
+    part_id = $1;
 
--- name: GetPaginatedQuestionGroups :many
-SELECT question_group_id,name, description, part_id,plan_type, group_type
-FROM question_groups
-ORDER BY created_at DESC
+-- name: GetPaginatedPracticeExamParts :many
+SELECT
+    part_id,
+    exam_id,
+    part_title,
+    part_order,
+    description,
+    is_practice_component,
+    plan_type,
+    created_at,
+    updated_at,
+    toeic_part_number
+FROM
+    exam_parts
+WHERE
+    is_practice_component == 'TRUE'
 LIMIT $1 OFFSET $2;
+-- name: GetPracticeExamPartCount :one
+SELECT COUNT(*) FROM exam_parts where is_practice_component == 'TRUE';
+-- name: GetExamPartsByExamId :many
+SELECT
+    part_id,
+    exam_id,
+    part_title,
+    part_order,
+    description,
+    is_practice_component,
+    plan_type,
+    created_at,
+    updated_at,
+    toeic_part_number
+FROM
+    exam_parts
+WHERE
+    exam_id = $1
+ORDER BY
+    part_order;
+
+-- name: UpdateExamPart :exec
+UPDATE exam_parts
+SET
+    exam_id = $2,
+    part_title = $3,
+    part_order = $4,
+    description = $5,
+    is_practice_component = $6,
+    plan_type = $7,
+    toeic_part_number = $8
+WHERE
+    part_id = $1;
+
+-- name: DeleteExamPart :exec
+DELETE FROM exam_parts
+WHERE
+    part_id = $1;
+
+---
+-- Paragraphs Queries
+---
+
+-- name: CreateParagraph :one
+INSERT INTO Paragraphs (
+    paragraph_content,
+    title,
+    part_id,
+    paragraph_order,
+    paragraph_type,
+    audio_url,
+    image_url
+) VALUES (
+             $1, $2, $3, $4, $5, $6, $7
+         ) RETURNING paragraph_id;
+
+-- name: GetParagraphByID :one
+SELECT
+    paragraph_id,
+    paragraph_content,
+    title,
+    part_id,
+    paragraph_order,
+    paragraph_type,
+    audio_url,
+    image_url,
+    created_at,
+    updated_at
+FROM
+    Paragraphs
+WHERE
+    paragraph_id = $1;
+-- name: GetParagraphByPartId :many
+SELECT
+    paragraph_id,
+    paragraph_content,
+    title,
+    part_id,
+    paragraph_order,
+    paragraph_type,
+    audio_url,
+    image_url,
+    created_at,
+    updated_at
+FROM
+    Paragraphs
+WHERE
+    part_id = $1;
+-- name: ListParagraphs :many
+SELECT
+    paragraph_id,
+    paragraph_content,
+    title,
+    part_id,
+    paragraph_order,
+    paragraph_type,
+    audio_url,
+    image_url,
+    created_at,
+    updated_at
+FROM
+    Paragraphs;
+
+-- name: ListParagraphsByPartID :many
+SELECT
+    paragraph_id,
+    paragraph_content,
+    title,
+    part_id,
+    paragraph_order,
+    paragraph_type,
+    audio_url,
+    image_url,
+    created_at,
+    updated_at
+FROM
+    Paragraphs
+WHERE
+    part_id = $1
+ORDER BY
+    paragraph_order;
+
+-- name: UpdateParagraph :exec
+UPDATE Paragraphs
+SET
+    paragraph_content = $2,
+    title = $3,
+    part_id = $4,
+    paragraph_order = $5,
+    paragraph_type = $6
+WHERE
+    paragraph_id = $1;
+
+-- name: UpdateParagraphAudioURL :exec
+UPDATE Paragraphs
+SET
+    audio_url = $2
+WHERE
+    paragraph_id = $1;
+
+-- name: UpdateParagraphImageURL :exec
+UPDATE Paragraphs
+SET
+    image_url = $2
+WHERE
+    paragraph_id = $1;
+
+-- name: DeleteParagraph :exec
+DELETE FROM Paragraphs
+WHERE
+    paragraph_id = $1;
+
+---
+-- Questions Queries
+---
+
+-- name: CreateQuestion :one
+INSERT INTO Questions (
+    question_content,
+    question_type,
+    part_id,
+    paragraph_id,
+    question_order,
+    audio_url,
+    image_url,
+    toeic_question_section,
+    question_number_in_part,
+    answer_option,
+    correct_answer
+) VALUES (
+             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+         ) RETURNING question_id;
+
+-- name: GetQuestionByID :one
+SELECT
+    question_id,
+    question_content,
+    question_type,
+    part_id,
+    paragraph_id,
+    question_order,
+    audio_url,
+    image_url,
+    toeic_question_section,
+    question_number_in_part,
+    answer_option,
+    correct_answer,
+    created_at,
+    updated_at
+FROM
+    Questions
+WHERE
+    question_id = $1;
+
+-- name: ListQuestions :many
+SELECT
+    question_id,
+    question_content,
+    question_type,
+    part_id,
+    paragraph_id,
+    question_order,
+    audio_url,
+    image_url,
+    toeic_question_section,
+    question_number_in_part,
+    answer_option,
+    correct_answer,
+    created_at,
+    updated_at
+FROM
+    Questions;
+
+-- name: ListQuestionsByPartID :many
+SELECT
+    question_id,
+    question_content,
+    question_type,
+    part_id,
+    paragraph_id,
+    question_order,
+    audio_url,
+    image_url,
+    toeic_question_section,
+    question_number_in_part,
+    answer_option,
+    correct_answer,
+    created_at,
+    updated_at
+FROM
+    Questions
+WHERE
+    part_id = $1
+ORDER BY
+    question_order;
+
+-- name: UpdateQuestion :exec
+UPDATE Questions
+SET
+    question_content = $2,
+    question_type = $3,
+    part_id = $4,
+    paragraph_id = $5,
+    question_order = $6,
+    toeic_question_section = $7,
+    question_number_in_part = $8,
+    answer_option = $9,
+    correct_answer = $10
+WHERE
+    question_id = $1;
+
+-- name: UpdateQuestionAudioURL :exec
+UPDATE Questions
+SET
+    audio_url = $2
+WHERE
+    question_id = $1;
+
+-- name: UpdateQuestionImageURL :exec
+UPDATE Questions
+SET
+    image_url = $2
+WHERE
+    question_id = $1;
+
+-- name: DeleteQuestion :exec
+DELETE FROM Questions
+WHERE
+    question_id = $1;

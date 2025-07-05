@@ -8,16 +8,48 @@ import (
 	"database/sql"
 
 	"github.com/google/uuid"
+	"github.com/sqlc-dev/pqtype"
 )
 
-type Part struct {
-	PartID      uuid.UUID      `json:"part_id"`
-	Skill       string         `json:"skill"`
-	Name        string         `json:"name"`
-	Description sql.NullString `json:"description"`
-	Sequence    int32          `json:"sequence"`
-	CreatedAt   sql.NullTime   `json:"created_at"`
-	UpdatedAt   sql.NullTime   `json:"updated_at"`
+type Exam struct {
+	ExamID            uuid.UUID      `json:"exam_id"`
+	ExamTitle         string         `json:"exam_title"`
+	Description       sql.NullString `json:"description"`
+	DurationMinutes   sql.NullInt32  `json:"duration_minutes"`
+	ExamType          string         `json:"exam_type"`
+	MaxListeningScore sql.NullInt32  `json:"max_listening_score"`
+	MaxReadingScore   sql.NullInt32  `json:"max_reading_score"`
+	MaxSpeakingScore  sql.NullInt32  `json:"max_speaking_score"`
+	MaxWritingScore   sql.NullInt32  `json:"max_writing_score"`
+	TotalScore        sql.NullInt32  `json:"total_score"`
+	CreatedAt         sql.NullTime   `json:"created_at"`
+	UpdatedAt         sql.NullTime   `json:"updated_at"`
+}
+
+type ExamPart struct {
+	PartID              uuid.UUID      `json:"part_id"`
+	ExamID              uuid.NullUUID  `json:"exam_id"`
+	PartTitle           string         `json:"part_title"`
+	PartOrder           sql.NullInt32  `json:"part_order"`
+	Description         sql.NullString `json:"description"`
+	IsPracticeComponent sql.NullBool   `json:"is_practice_component"`
+	PlanType            string         `json:"plan_type"`
+	CreatedAt           sql.NullTime   `json:"created_at"`
+	UpdatedAt           sql.NullTime   `json:"updated_at"`
+	ToeicPartNumber     sql.NullInt32  `json:"toeic_part_number"`
+}
+
+type Paragraph struct {
+	ParagraphID      uuid.UUID      `json:"paragraph_id"`
+	ParagraphContent string         `json:"paragraph_content"`
+	Title            sql.NullString `json:"title"`
+	PartID           uuid.UUID      `json:"part_id"`
+	ParagraphOrder   int32          `json:"paragraph_order"`
+	ParagraphType    sql.NullString `json:"paragraph_type"`
+	AudioUrl         sql.NullString `json:"audio_url"`
+	ImageUrl         sql.NullString `json:"image_url"`
+	CreatedAt        sql.NullTime   `json:"created_at"`
+	UpdatedAt        sql.NullTime   `json:"updated_at"`
 }
 
 type Permission struct {
@@ -29,45 +61,20 @@ type Permission struct {
 }
 
 type Question struct {
-	QuestionID           uuid.UUID      `json:"question_id"`
-	QuestionGroupID      uuid.NullUUID  `json:"question_group_id"`
-	QuestionOrder        int32          `json:"question_order"`
-	TextContent          sql.NullString `json:"text_content"`
-	AudioUrl             sql.NullString `json:"audio_url"`
-	ImageUrl             sql.NullString `json:"image_url"`
-	ExpectedAnswerFormat sql.NullString `json:"expected_answer_format"`
-	CreatedAt            sql.NullTime   `json:"created_at"`
-	UpdatedAt            sql.NullTime   `json:"updated_at"`
-}
-
-type QuestionGroup struct {
-	QuestionGroupID    uuid.UUID      `json:"question_group_id"`
-	Name               string         `json:"name"`
-	Description        sql.NullString `json:"description"`
-	ContextTextContent sql.NullString `json:"context_text_content"`
-	ContextAudioUrl    sql.NullString `json:"context_audio_url"`
-	ContextImageUrl    sql.NullString `json:"context_image_url"`
-	PartID             uuid.UUID      `json:"part_id"`
-	GroupType          string         `json:"group_type"`
-	CreatedAt          sql.NullTime   `json:"created_at"`
-	UpdatedAt          sql.NullTime   `json:"updated_at"`
-	PlanType           string         `json:"plan_type"`
-	Version            int32          `json:"version"`
-	IsLocked           sql.NullBool   `json:"is_locked"`
-	LockedAt           sql.NullTime   `json:"locked_at"`
-	LockReason         sql.NullString `json:"lock_reason"`
-	UnlockedAt         sql.NullTime   `json:"unlocked_at"`
-	UnlockReason       sql.NullString `json:"unlock_reason"`
-}
-
-type QuestionOption struct {
-	OptionID        uuid.UUID    `json:"option_id"`
-	QuestionID      uuid.UUID    `json:"question_id"`
-	OptionName      string       `json:"option_name"`
-	OptionValue     string       `json:"option_value"`
-	IsCorrectOption sql.NullBool `json:"is_correct_option"`
-	CreatedAt       sql.NullTime `json:"created_at"`
-	UpdatedAt       sql.NullTime `json:"updated_at"`
+	QuestionID           uuid.UUID             `json:"question_id"`
+	QuestionContent      string                `json:"question_content"`
+	QuestionType         string                `json:"question_type"`
+	PartID               uuid.UUID             `json:"part_id"`
+	ParagraphID          uuid.NullUUID         `json:"paragraph_id"`
+	QuestionOrder        int32                 `json:"question_order"`
+	AudioUrl             sql.NullString        `json:"audio_url"`
+	ImageUrl             sql.NullString        `json:"image_url"`
+	ToeicQuestionSection string                `json:"toeic_question_section"`
+	QuestionNumberInPart sql.NullInt32         `json:"question_number_in_part"`
+	AnswerOption         pqtype.NullRawMessage `json:"answer_option"`
+	CorrectAnswer        sql.NullString        `json:"correct_answer"`
+	CreatedAt            sql.NullTime          `json:"created_at"`
+	UpdatedAt            sql.NullTime          `json:"updated_at"`
 }
 
 type Role struct {

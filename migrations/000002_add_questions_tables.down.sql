@@ -1,21 +1,17 @@
--- ========================
--- DROP TRIGGER
--- ========================
-DROP TRIGGER IF EXISTS set_question_options_update_at ON question_options;
-DROP TRIGGER IF EXISTS set_questions_update_at ON questions;
-DROP TRIGGER IF EXISTS set_question_group_update_at ON question_groups;
-DROP TRIGGER IF EXISTS set_question_group_version ON question_groups;
-DROP TRIGGER IF EXISTS set_parts_update_at ON parts;
-
--- ========================
--- DROP TRIGGER FUNCTION
--- ========================
-DROP FUNCTION IF EXISTS update_version_column();
-
--- ========================
--- DROP TABLE
--- ========================
-DROP TABLE IF EXISTS question_options;
+-- ======================
+-- Trigger
+-- ======================
+DROP TRIGGER IF EXISTS update_questions_updated_at ON questions;
+DROP TRIGGER IF EXISTS update_exams_updated_at ON exams;
+DROP TRIGGER IF EXISTS update_paragraphs_updated_at ON paragraphs;
+DROP TRIGGER IF EXISTS update_exam_parts_updated_at ON exam_parts;
+-- ======================
+-- Table
+-- ======================
 DROP TABLE IF EXISTS questions;
-DROP TABLE IF EXISTS question_groups;
-DROP TABLE IF EXISTS parts;
+
+DROP TABLE IF EXISTS paragraphs;
+
+DROP TABLE IF EXISTS exam_parts;
+
+DROP TABLE IF EXISTS exams;
