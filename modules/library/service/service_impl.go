@@ -34,7 +34,7 @@ type ILibraryService interface {
 	CreateExamPart(ctx context.Context, dataRequest *dto.CreateExamPartRequest) *errors.AppError
 	UpdateExamPart(ctx context.Context, dataRequest *dto.UpdateExamPartRequest, examPartId uuid.UUID) *errors.AppError
 	GetExamPart(ctx context.Context, examPartId uuid.UUID) (*dto.ExamPartResponse, *errors.AppError)
-	GetExamParts(ctx context.Context, pageNumber, pageSize int) (*dto.PaginatedExamPartResponse, *errors.AppError)
+	GetPracticeExamParts(ctx context.Context, pageNumber, pageSize int) (*dto.PaginatedExamPartResponse, *errors.AppError)
 	GetExamPartsByExamId(ctx context.Context, examId uuid.UUID) ([]*dto.ExamPartResponse, *errors.AppError)
 	//CreateQuestionGroup(ctx context.Context, req *dto.CreateQuestionGroupRequest) (string, *errors.AppError)
 	//UpdateQuestionGroup(ctx context.Context, groupId uuid.UUID, req *dto.UpdateQuestionGroupRequest) *errors.AppError

@@ -35,7 +35,7 @@ type ILibraryRepository interface {
 	CreateExamPart(ctx context.Context, examPart *entity.ExamPart) error
 	UpdateExamPart(ctx context.Context, examPart *entity.ExamPart, examPartId uuid.UUID) error
 	GetExamPart(ctx context.Context, examPartId uuid.UUID) (*entity.ExamPart, error)
-	GetExamParts(ctx context.Context, pageNumber, pageSize int) (*entity.PaginatedExamPart, error)
+	GetPracticeExamParts(ctx context.Context, pageNumber, pageSize int) (*entity.PaginatedExamPart, error)
 	GetExamPartsByExamId(ctx context.Context, examId uuid.UUID) ([]*entity.ExamPart, error)
 	CreateParagraph(ctx context.Context, paragraph *entity.Paragraph) error
 	UpdateParagraph(ctx context.Context, paragraph *entity.Paragraph, paragraphId uuid.UUID) error
