@@ -43,4 +43,11 @@ type ILibraryRepository interface {
 	GetParagraphsByPartId(ctx context.Context, partId uuid.UUID) ([]*entity.Paragraph, error)
 	UpdateAudioParagraph(ctx context.Context, audioUrl *string, paragraphId uuid.UUID) error
 	UpdateImageParagraph(ctx context.Context, imageUrl *string, paragraphId uuid.UUID) error
+	GetQuestionsByParagraph(ctx context.Context, paragraphId uuid.UUID) ([]*entity.Question, error)
+	GetSeparateQuestionsByPart(ctx context.Context, partId uuid.UUID, pageNumber, pageSize int) (*entity.PaginatedQuestion, error)
+	CreateQuestion(ctx context.Context, questionRequest *entity.Question) (*entity.Question, error)
+	UpdateQuestion(ctx context.Context, questionRequest *entity.Question, questionId uuid.UUID) error
+	UpdateQuestionAudioUrl(ctx context.Context, url *string, questionId uuid.UUID) error
+	UpdateQuestionImageUrl(ctx context.Context, url *string, questionId uuid.UUID) error
+	GetQuestion(ctx context.Context, questionId uuid.UUID) (*entity.Question, error)
 }

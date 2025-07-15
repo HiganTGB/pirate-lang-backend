@@ -429,7 +429,7 @@ INSERT INTO Questions (
     correct_answer
 ) VALUES (
              $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-         ) RETURNING question_id;
+         ) RETURNING question_id,question_content,question_type,part_id,paragraph_id,question_order,audio_url,image_url,toeic_question_section,question_number_in_part;
 
 -- name: GetQuestionByID :one
 SELECT
@@ -493,6 +493,62 @@ WHERE
     part_id = $1
 ORDER BY
     question_order;
+-- name: ListQuestionsByParagraphID :many
+SELECT
+    question_id,
+    question_content,
+    question_type,
+    part_id,
+    paragraph_id,
+    question_order,
+    audio_url,
+    image_url,
+    toeic_question_section,
+    question_number_in_part,
+    answer_option,
+    correct_answer,
+    created_at,
+    updated_at
+FROM
+    Questions
+WHERE
+    paragraph_id = $1
+Order By
+    question_order ASC,
+    question_number_in_part ASC,
+    question_id ASC;
+-- name: GetCountSeparateQuestionsByPartID :one
+SELECT
+    count(*)
+FROM
+    Questions
+WHERE
+    part_id = $1 and paragraph_id ISNULL;
+-- name: GetPaginatedSeparateQuestionsByPartID :many
+SELECT
+    question_id,
+    question_content,
+    question_type,
+    part_id,
+    paragraph_id,
+    question_order,
+    audio_url,
+    image_url,
+    toeic_question_section,
+    question_number_in_part,
+    answer_option,
+    correct_answer,
+    created_at,
+    updated_at
+FROM
+    Questions
+WHERE
+    part_id = $1 and paragraph_id ISNULL
+Order By
+    question_order ASC,
+    question_number_in_part ASC,
+    question_id ASC
+Limit $2 OFFSET $3;
 
 -- name: UpdateQuestion :exec
 UPDATE Questions

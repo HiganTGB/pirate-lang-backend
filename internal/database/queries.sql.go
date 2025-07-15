@@ -234,7 +234,7 @@ INSERT INTO Questions (
     correct_answer
 ) VALUES (
              $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-         ) RETURNING question_id
+         ) RETURNING question_id,question_content,question_type,part_id,paragraph_id,question_order,audio_url,image_url,toeic_question_section,question_number_in_part
 `
 
 type CreateQuestionParams struct {
@@ -251,10 +251,23 @@ type CreateQuestionParams struct {
 	CorrectAnswer        sql.NullString        `json:"correct_answer"`
 }
 
+type CreateQuestionRow struct {
+	QuestionID           uuid.UUID      `json:"question_id"`
+	QuestionContent      string         `json:"question_content"`
+	QuestionType         string         `json:"question_type"`
+	PartID               uuid.UUID      `json:"part_id"`
+	ParagraphID          uuid.NullUUID  `json:"paragraph_id"`
+	QuestionOrder        int32          `json:"question_order"`
+	AudioUrl             sql.NullString `json:"audio_url"`
+	ImageUrl             sql.NullString `json:"image_url"`
+	ToeicQuestionSection string         `json:"toeic_question_section"`
+	QuestionNumberInPart sql.NullInt32  `json:"question_number_in_part"`
+}
+
 // -
 // Questions Queries
 // -
-func (q *Queries) CreateQuestion(ctx context.Context, arg CreateQuestionParams) (uuid.UUID, error) {
+func (q *Queries) CreateQuestion(ctx context.Context, arg CreateQuestionParams) (CreateQuestionRow, error) {
 	row := q.db.QueryRowContext(ctx, createQuestion,
 		arg.QuestionContent,
 		arg.QuestionType,
@@ -268,9 +281,20 @@ func (q *Queries) CreateQuestion(ctx context.Context, arg CreateQuestionParams) 
 		arg.AnswerOption,
 		arg.CorrectAnswer,
 	)
-	var question_id uuid.UUID
-	err := row.Scan(&question_id)
-	return question_id, err
+	var i CreateQuestionRow
+	err := row.Scan(
+		&i.QuestionID,
+		&i.QuestionContent,
+		&i.QuestionType,
+		&i.PartID,
+		&i.ParagraphID,
+		&i.QuestionOrder,
+		&i.AudioUrl,
+		&i.ImageUrl,
+		&i.ToeicQuestionSection,
+		&i.QuestionNumberInPart,
+	)
+	return i, err
 }
 
 const createRole = `-- name: CreateRole :exec
@@ -382,6 +406,22 @@ DELETE FROM roles WHERE id = $1
 func (q *Queries) DeleteRole(ctx context.Context, id uuid.UUID) error {
 	_, err := q.db.ExecContext(ctx, deleteRole, id)
 	return err
+}
+
+const getCountSeparateQuestionsByPartID = `-- name: GetCountSeparateQuestionsByPartID :one
+SELECT
+    count(*)
+FROM
+    Questions
+WHERE
+    part_id = $1 and paragraph_id ISNULL
+`
+
+func (q *Queries) GetCountSeparateQuestionsByPartID(ctx context.Context, partID uuid.UUID) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getCountSeparateQuestionsByPartID, partID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
 }
 
 const getExam = `-- name: GetExam :one
@@ -629,6 +669,77 @@ func (q *Queries) GetPaginatedPracticeExamParts(ctx context.Context, arg GetPagi
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.ToeicPartNumber,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getPaginatedSeparateQuestionsByPartID = `-- name: GetPaginatedSeparateQuestionsByPartID :many
+SELECT
+    question_id,
+    question_content,
+    question_type,
+    part_id,
+    paragraph_id,
+    question_order,
+    audio_url,
+    image_url,
+    toeic_question_section,
+    question_number_in_part,
+    answer_option,
+    correct_answer,
+    created_at,
+    updated_at
+FROM
+    Questions
+WHERE
+    part_id = $1 and paragraph_id ISNULL
+Order By
+    question_order ASC,
+    question_number_in_part ASC,
+    question_id ASC
+Limit $2 OFFSET $3
+`
+
+type GetPaginatedSeparateQuestionsByPartIDParams struct {
+	PartID uuid.UUID `json:"part_id"`
+	Limit  int32     `json:"limit"`
+	Offset int32     `json:"offset"`
+}
+
+func (q *Queries) GetPaginatedSeparateQuestionsByPartID(ctx context.Context, arg GetPaginatedSeparateQuestionsByPartIDParams) ([]Question, error) {
+	rows, err := q.db.QueryContext(ctx, getPaginatedSeparateQuestionsByPartID, arg.PartID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Question{}
+	for rows.Next() {
+		var i Question
+		if err := rows.Scan(
+			&i.QuestionID,
+			&i.QuestionContent,
+			&i.QuestionType,
+			&i.PartID,
+			&i.ParagraphID,
+			&i.QuestionOrder,
+			&i.AudioUrl,
+			&i.ImageUrl,
+			&i.ToeicQuestionSection,
+			&i.QuestionNumberInPart,
+			&i.AnswerOption,
+			&i.CorrectAnswer,
+			&i.CreatedAt,
+			&i.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -1198,6 +1309,70 @@ FROM
 
 func (q *Queries) ListQuestions(ctx context.Context) ([]Question, error) {
 	rows, err := q.db.QueryContext(ctx, listQuestions)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []Question{}
+	for rows.Next() {
+		var i Question
+		if err := rows.Scan(
+			&i.QuestionID,
+			&i.QuestionContent,
+			&i.QuestionType,
+			&i.PartID,
+			&i.ParagraphID,
+			&i.QuestionOrder,
+			&i.AudioUrl,
+			&i.ImageUrl,
+			&i.ToeicQuestionSection,
+			&i.QuestionNumberInPart,
+			&i.AnswerOption,
+			&i.CorrectAnswer,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listQuestionsByParagraphID = `-- name: ListQuestionsByParagraphID :many
+SELECT
+    question_id,
+    question_content,
+    question_type,
+    part_id,
+    paragraph_id,
+    question_order,
+    audio_url,
+    image_url,
+    toeic_question_section,
+    question_number_in_part,
+    answer_option,
+    correct_answer,
+    created_at,
+    updated_at
+FROM
+    Questions
+WHERE
+    paragraph_id = $1
+Order By
+    question_order ASC,
+    question_number_in_part ASC,
+    question_id ASC
+`
+
+func (q *Queries) ListQuestionsByParagraphID(ctx context.Context, paragraphID uuid.NullUUID) ([]Question, error) {
+	rows, err := q.db.QueryContext(ctx, listQuestionsByParagraphID, paragraphID)
 	if err != nil {
 		return nil, err
 	}

@@ -36,16 +36,6 @@ type ILibraryService interface {
 	GetExamPart(ctx context.Context, examPartId uuid.UUID) (*dto.ExamPartResponse, *errors.AppError)
 	GetPracticeExamParts(ctx context.Context, pageNumber, pageSize int) (*dto.PaginatedExamPartResponse, *errors.AppError)
 	GetExamPartsByExamId(ctx context.Context, examId uuid.UUID) ([]*dto.ExamPartResponse, *errors.AppError)
-	//CreateQuestionGroup(ctx context.Context, req *dto.CreateQuestionGroupRequest) (string, *errors.AppError)
-	//UpdateQuestionGroup(ctx context.Context, groupId uuid.UUID, req *dto.UpdateQuestionGroupRequest) *errors.AppError
-	//GetQuestionGroups(ctx context.Context, pageNumber, pageSize int) (*dto.PaginatedGroupResponse, *errors.AppError)
-	//UploadAudioGroup(ctx context.Context, file *multipart.FileHeader, groupId uuid.UUID) (*dto.UpdateContentFileResponse, *errors.AppError)
-	//UploadTranscriptAudioGroup(ctx context.Context, file *multipart.FileHeader, groupId uuid.UUID, language string) (*dto.UpdateContentFileResponse, *errors.AppError)
-	//UploadImageGroup(ctx context.Context, file *multipart.FileHeader, groupId uuid.UUID) (*dto.UpdateContentFileResponse, *errors.AppError)
-	//DeleteAudioGroup(ctx context.Context, groupId uuid.UUID) *errors.AppError
-	//GetQuestionsByGroups(ctx context.Context, groupId uuid.UUID) ([]*dto.QuestionResponse, error)
-	//CreateQuestion(ctx context.Context, request *dto.CreateQuestionRequest, groupId uuid.UUID) (*dto.QuestionResponse, error)
-	//UpdateQuestion(ctx context.Context, request *dto.UpdateQuestionRequest, questionId uuid.UUID) error
 	CreateParagraph(ctx context.Context, dataRequest *dto.CreateParagraphRequest) *errors.AppError
 	UpdateParagraph(ctx context.Context, dataRequest *dto.UpdateParagraphRequest, paragraphId uuid.UUID) *errors.AppError
 	GetParagraph(ctx context.Context, paragraphId uuid.UUID) (*dto.ParagraphResponse, *errors.AppError)
@@ -53,4 +43,13 @@ type ILibraryService interface {
 	UploadAudioParagraph(ctx context.Context, file *multipart.FileHeader, paragraphId uuid.UUID) (*dto.UpdateContentFileResponse, *errors.AppError)
 	UploadTranscriptAudioParagraph(ctx context.Context, file *multipart.FileHeader, paragraphId uuid.UUID, language string) (*dto.UpdateContentFileResponse, *errors.AppError)
 	UploadImageParagraph(ctx context.Context, file *multipart.FileHeader, paragraphId uuid.UUID) (*dto.UpdateContentFileResponse, *errors.AppError)
+	UploadAudioQuestion(ctx context.Context, file *multipart.FileHeader, groupId uuid.UUID) (*dto.UpdateContentFileResponse, *errors.AppError)
+	UploadTranscriptQuestion(ctx context.Context, file *multipart.FileHeader, groupId uuid.UUID, language string) (*dto.UpdateContentFileResponse, *errors.AppError)
+	UploadImageQuestion(ctx context.Context, file *multipart.FileHeader, groupId uuid.UUID) (*dto.UpdateContentFileResponse, *errors.AppError)
+	DeleteAudioGroup(ctx context.Context, groupId uuid.UUID) *errors.AppError
+	GetQuestionByParts(ctx context.Context, pageNumber, pageSize int, partId uuid.UUID) (*dto.PaginatedQuestionResponse, *errors.AppError)
+	GetQuestionsByParagraph(ctx context.Context, paragraphId uuid.UUID) ([]*dto.QuestionResponse, error)
+	CreateQuestion(ctx context.Context, request *dto.CreateQuestionRequest) (*dto.QuestionResponse, error)
+	UpdateQuestion(ctx context.Context, request *dto.UpdateQuestionRequest, questionId uuid.UUID) error
+	GetQuestion(ctx context.Context, questionId uuid.UUID) (*dto.QuestionResponse, error)
 }

@@ -8,20 +8,33 @@ import (
 )
 
 var ValidParagraphTypes = map[string]bool{
-	"READING":   true,
-	"LISTENING": true,
-	"SPEAKING":  true,
-	"WRITING":   true,
+	"Reading Passage": true,
+	"Audio Script":    true,
+	"General Context": true,
+	"Image Context":   true,
 }
 
 var ValidPlan = map[string]bool{
 	"SUBSCRIPTION": true,
 	"FREE":         true,
 }
-var ValidGroup = map[string]bool{
-	"MULTIPLE_CHOICE":        true,
-	"MULTIPLE_CHOICE_HIDDEN": true,
-	"ESSAY":                  true,
+var ValidQuestionTypes = map[string]bool{
+	"MultipleChoice": true,
+	"TrueFalse":      true,
+	"FillInTheBlank": true,
+	"Essay":          true,
+	"ShortAnswer":    true,
+
+	"PhotoDescription": true,
+	"QuestionResponse": true,
+
+	"ReadAloud":          true,
+	"PictureDescription": true,
+	"OpenResponse":       true,
+
+	"Matching":    true,
+	"Ordering":    true,
+	"Instruction": true,
 }
 var ValidLang = map[string]bool{
 	"vn":  true,
@@ -32,6 +45,12 @@ var ValidExamTypes = map[string]bool{
 	"TOEIC S&W":    true,
 	"TOEIC Bridge": true,
 	"General":      true,
+}
+var ValidToeicQuestionSections = map[string]bool{
+	"Listening": true,
+	"Reading":   true,
+	"Speaking":  true,
+	"Writing":   true,
 }
 
 func ValidateCreateExam(dataRequest *dto.CreateExamRequest) *validation.ValidationResult {
@@ -251,6 +270,78 @@ func ValidateUpdateParagraph(dataRequest *dto.UpdateParagraphRequest) *validatio
 	} else {
 		if !ValidParagraphTypes[dataRequest.ParagraphType] {
 			result.AddError("paragraph_type", "Paragraph type must be one of 'READING', 'LISTENING', 'SPEAKING', 'WRITING'")
+		}
+	}
+
+	return result
+}
+func ValidateCreateQuestion(dataRequest *dto.CreateQuestionRequest) *validation.ValidationResult {
+	if dataRequest == nil {
+		return nil
+	}
+	result := validation.NewValidationResult()
+
+	if utils.IsEmpty(dataRequest.QuestionContent) {
+		result.AddError("question_content", "Question content is required")
+	}
+
+	if utils.IsEmpty(dataRequest.QuestionType) {
+		result.AddError("question_type", "Question type is required")
+	} else {
+		if !ValidQuestionTypes[dataRequest.QuestionType] {
+			result.AddError("question_type", "Invalid question type. Must be one of the predefined types.")
+		}
+	}
+
+	if dataRequest.PartID == uuid.Nil {
+		result.AddError("part_id", "Part ID is required")
+	}
+
+	if dataRequest.QuestionOrder <= 0 {
+		result.AddError("question_order", "Question order must be a positive number")
+	}
+
+	if utils.IsEmpty(dataRequest.ToeicQuestionSection) {
+		result.AddError("toeic_question_section", "TOEIC question section is required")
+	} else {
+		if !ValidToeicQuestionSections[dataRequest.ToeicQuestionSection] {
+			result.AddError("toeic_question_section", "Invalid TOEIC question section. Must be 'Listening', 'Reading', 'Speaking', or 'Writing'.")
+		}
+	}
+
+	return result
+}
+func ValidateUpdateQuestion(dataRequest *dto.UpdateQuestionRequest) *validation.ValidationResult {
+	if dataRequest == nil {
+		return nil
+	}
+	result := validation.NewValidationResult()
+
+	if utils.IsEmpty(dataRequest.QuestionContent) {
+		result.AddError("question_content", "Question content is required")
+	}
+
+	if utils.IsEmpty(dataRequest.QuestionType) {
+		result.AddError("question_type", "Question type is required")
+	} else {
+		if !ValidQuestionTypes[dataRequest.QuestionType] {
+			result.AddError("question_type", "Invalid question type. Must be one of the predefined types.")
+		}
+	}
+
+	if dataRequest.PartID == uuid.Nil {
+		result.AddError("part_id", "Part ID is required")
+	}
+
+	if dataRequest.QuestionOrder <= 0 {
+		result.AddError("question_order", "Question order must be a positive number")
+	}
+
+	if utils.IsEmpty(dataRequest.ToeicQuestionSection) {
+		result.AddError("toeic_question_section", "TOEIC question section is required")
+	} else {
+		if !ValidToeicQuestionSections[dataRequest.ToeicQuestionSection] {
+			result.AddError("toeic_question_section", "Invalid TOEIC question section. Must be 'Listening', 'Reading', 'Speaking', or 'Writing'.")
 		}
 	}
 

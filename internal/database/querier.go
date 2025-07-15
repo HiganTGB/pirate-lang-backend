@@ -32,7 +32,7 @@ type Querier interface {
 	//-
 	// Questions Queries
 	//-
-	CreateQuestion(ctx context.Context, arg CreateQuestionParams) (uuid.UUID, error)
+	CreateQuestion(ctx context.Context, arg CreateQuestionParams) (CreateQuestionRow, error)
 	// CreateRole creates a new role.
 	CreateRole(ctx context.Context, arg CreateRoleParams) error
 	// 00002
@@ -46,12 +46,14 @@ type Querier interface {
 	DeleteQuestion(ctx context.Context, questionID uuid.UUID) error
 	// DeleteRole deletes a role by its ID.
 	DeleteRole(ctx context.Context, id uuid.UUID) error
+	GetCountSeparateQuestionsByPartID(ctx context.Context, partID uuid.UUID) (int64, error)
 	GetExam(ctx context.Context, examID uuid.UUID) (Exam, error)
 	GetExamPartByID(ctx context.Context, partID uuid.UUID) (ExamPart, error)
 	GetExamPartsByExamId(ctx context.Context, examID uuid.NullUUID) ([]ExamPart, error)
 	GetExamsCount(ctx context.Context) (int64, error)
 	GetPaginatedExams(ctx context.Context, arg GetPaginatedExamsParams) ([]Exam, error)
 	GetPaginatedPracticeExamParts(ctx context.Context, arg GetPaginatedPracticeExamPartsParams) ([]ExamPart, error)
+	GetPaginatedSeparateQuestionsByPartID(ctx context.Context, arg GetPaginatedSeparateQuestionsByPartIDParams) ([]Question, error)
 	// GetPaginatedUsers retrieves a list of users with pagination.
 	GetPaginatedUsers(ctx context.Context, arg GetPaginatedUsersParams) ([]GetPaginatedUsersRow, error)
 	GetParagraphByID(ctx context.Context, paragraphID uuid.UUID) (Paragraph, error)
@@ -74,6 +76,7 @@ type Querier interface {
 	ListParagraphs(ctx context.Context) ([]Paragraph, error)
 	ListParagraphsByPartID(ctx context.Context, partID uuid.UUID) ([]Paragraph, error)
 	ListQuestions(ctx context.Context) ([]Question, error)
+	ListQuestionsByParagraphID(ctx context.Context, paragraphID uuid.NullUUID) ([]Question, error)
 	ListQuestionsByPartID(ctx context.Context, partID uuid.UUID) ([]Question, error)
 	// LockUser to lock user account
 	LockUser(ctx context.Context, arg LockUserParams) (sql.Result, error)

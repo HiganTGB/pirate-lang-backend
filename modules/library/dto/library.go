@@ -6,6 +6,12 @@ import (
 	"time"
 )
 
+type AnswerOption struct {
+	A *string `json:"A,omitempty"`
+	B *string `json:"B,omitempty"`
+	C *string `json:"C,omitempty"`
+	D *string `json:"D,omitempty"`
+}
 type ExamResponse struct {
 	ExamID            uuid.UUID `json:"exam_id"`
 	ExamTitle         string    `json:"exam_title"`
@@ -106,3 +112,46 @@ type UpdateContentFileResponse struct {
 	Filename  string `json:"original_filename"`
 	ObjectURL string `json:"object_url"`
 }
+type QuestionResponse struct {
+	QuestionID           uuid.UUID    `json:"question_id"`
+	QuestionContent      string       `json:"question_content"`
+	QuestionType         string       `json:"question_type"`
+	PartID               uuid.UUID    `json:"part_id"`
+	ParagraphID          uuid.UUID    `json:"paragraph_id"`
+	QuestionOrder        int32        `json:"question_order"`
+	AudioUrl             string       `json:"audio_url"`
+	ImageUrl             string       `json:"image_url"`
+	ToeicQuestionSection string       `json:"toeic_question_section"`
+	QuestionNumberInPart int32        `json:"question_number_in_part"`
+	AnswerOption         AnswerOption `json:"answer_option"`
+	CorrectAnswer        string       `json:"correct_answer"`
+	CreatedAt            time.Time    `json:"created_at"`
+	UpdatedAt            time.Time    `json:"updated_at"`
+}
+type CreateQuestionRequest struct {
+	QuestionContent      string    `json:"question_content"`
+	QuestionType         string    `json:"question_type"`
+	PartID               uuid.UUID `json:"part_id"`
+	ParagraphID          uuid.UUID `json:"paragraph_id"`
+	QuestionOrder        int32     `json:"question_order"`
+	ToeicQuestionSection string    `json:"toeic_question_section"`
+	QuestionNumberInPart int32     `json:"question_number_in_part"`
+	AnswerOption         string    `json:"answer_option"`
+	CorrectAnswer        string    `json:"correct_answer"`
+	CreatedAt            time.Time `json:"created_at"`
+	UpdatedAt            time.Time `json:"updated_at"`
+}
+type UpdateQuestionRequest struct {
+	QuestionContent      string    `json:"question_content"`
+	QuestionType         string    `json:"question_type"`
+	PartID               uuid.UUID `json:"part_id"`
+	ParagraphID          uuid.UUID `json:"paragraph_id"`
+	QuestionOrder        int32     `json:"question_order"`
+	ToeicQuestionSection string    `json:"toeic_question_section"`
+	QuestionNumberInPart int32     `json:"question_number_in_part"`
+	AnswerOption         string    `json:"answer_option"`
+	CorrectAnswer        string    `json:"correct_answer"`
+	CreatedAt            time.Time `json:"created_at"`
+	UpdatedAt            time.Time `json:"updated_at"`
+}
+type PaginatedQuestionResponse = entity.Pagination[*QuestionResponse]

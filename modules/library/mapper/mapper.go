@@ -1,6 +1,8 @@
 package mapper
 
 import (
+	"encoding/json"
+	"fmt"
 	"pirate-lang-go/modules/library/dto"
 	"pirate-lang-go/modules/library/entity"
 )
@@ -203,5 +205,96 @@ func ToParagraphResponse(ent *entity.Paragraph) *dto.ParagraphResponse {
 		ImageUrl:         ent.ImageUrl,
 		CreatedAt:        ent.CreatedAt,
 		UpdatedAt:        ent.UpdatedAt,
+	}
+}
+
+func MarshalAnswerOption(opt *dto.AnswerOption) (string, error) {
+	jsonData, err := json.Marshal(opt)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal AnswerOption to JSON: %w", err)
+	}
+	return string(jsonData), nil
+}
+
+func UnmarshalAnswerOption(jsonString string) (dto.AnswerOption, error) {
+	var opt dto.AnswerOption
+	if jsonString == "" {
+		return opt, nil
+	}
+
+	err := json.Unmarshal([]byte(jsonString), &opt)
+	if err != nil {
+		return dto.AnswerOption{}, fmt.Errorf("failed to unmarshal JSON to AnswerOption: %w", err)
+	}
+	return opt, nil
+}
+
+func ToCreateQuestionEntity(dto *dto.CreateQuestionRequest) *entity.Question {
+	if dto == nil {
+		return nil
+	}
+	return &entity.Question{
+		QuestionContent:      dto.QuestionContent,
+		QuestionType:         dto.QuestionType,
+		PartID:               dto.PartID,
+		ParagraphID:          dto.ParagraphID,
+		QuestionOrder:        dto.QuestionOrder,
+		ToeicQuestionSection: dto.ToeicQuestionSection,
+		QuestionNumberInPart: dto.QuestionNumberInPart,
+		AnswerOption:         dto.AnswerOption,
+	}
+}
+func ToUpdateQuestionEntity(dto *dto.UpdateQuestionRequest) *entity.Question {
+	if dto == nil {
+		return nil
+	}
+	return &entity.Question{
+		QuestionContent:      dto.QuestionContent,
+		QuestionType:         dto.QuestionType,
+		PartID:               dto.PartID,
+		ParagraphID:          dto.ParagraphID,
+		QuestionOrder:        dto.QuestionOrder,
+		ToeicQuestionSection: dto.ToeicQuestionSection,
+		QuestionNumberInPart: dto.QuestionNumberInPart,
+		AnswerOption:         dto.AnswerOption,
+	}
+}
+
+func ToQuestionResponse(entity *entity.Question) *dto.QuestionResponse {
+	if entity == nil {
+		return nil
+	}
+
+	var answerOption, err = UnmarshalAnswerOption(entity.AnswerOption)
+	if err != nil {
+		answerOption = dto.AnswerOption{}
+	}
+
+	return &dto.QuestionResponse{
+		QuestionID:           entity.QuestionID,
+		QuestionContent:      entity.QuestionContent,
+		ParagraphID:          entity.ParagraphID,
+		QuestionNumberInPart: entity.QuestionNumberInPart,
+		AnswerOption:         answerOption,
+		CreatedAt:            entity.CreatedAt,
+		UpdatedAt:            entity.UpdatedAt,
+	}
+}
+func ToPaginatedQuestionResponse(parts *entity.PaginatedQuestion) *dto.PaginatedQuestionResponse {
+	if parts == nil {
+		return nil
+	}
+
+	dtOs := make([]*dto.QuestionResponse, 0, len(parts.Items))
+	for _, item := range parts.Items {
+		dtOs = append(dtOs, ToQuestionResponse(item))
+	}
+
+	return &dto.PaginatedQuestionResponse{
+		Items:       dtOs,
+		TotalItems:  parts.TotalItems,
+		TotalPages:  parts.TotalPages,
+		CurrentPage: parts.CurrentPage,
+		PageSize:    parts.PageSize,
 	}
 }
