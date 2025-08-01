@@ -78,4 +78,5 @@ volumes:
   minio_data:
 networks:
   pirate_network:
+    external: true
     driver: bridge
